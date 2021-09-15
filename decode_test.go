@@ -7,12 +7,16 @@ package json
 import (
 	"bytes"
 	"encoding"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"image"
 	"math"
 	"math/big"
 	"net"
+	"os"
 	"reflect"
 	"strconv"
 	"strings"
@@ -983,23 +987,19 @@ var unmarshalTests = []unmarshalTest{
 }
 
 func TestMarshal(t *testing.T) {
-	b, err := Marshal(allValue)
-	if err != nil {
-		t.Fatalf("Marshal allValue: %v", err)
-	}
-	if string(b) != allValueCompact {
+	buf := strings.Builder{}
+	require.NoError(t, Marshal(allValue, &buf))
+	if buf.String() != allValueCompact {
 		t.Errorf("Marshal allValueCompact")
-		diff(t, b, []byte(allValueCompact))
+		diff(t, []byte(buf.String()), []byte(allValueCompact))
 		return
 	}
 
-	b, err = Marshal(pallValue)
-	if err != nil {
-		t.Fatalf("Marshal pallValue: %v", err)
-	}
-	if string(b) != pallValueCompact {
+	buf.Reset()
+	require.NoError(t, Marshal(pallValue, &buf))
+	if buf.String() != pallValueCompact {
 		t.Errorf("Marshal pallValueCompact")
-		diff(t, b, []byte(pallValueCompact))
+		diff(t, []byte(buf.String()), []byte(pallValueCompact))
 		return
 	}
 }
@@ -1016,24 +1016,19 @@ var badUTF8 = []struct {
 }
 
 func TestMarshalBadUTF8(t *testing.T) {
+	buf := strings.Builder{}
 	for _, tt := range badUTF8 {
-		b, err := Marshal(tt.in)
-		if string(b) != tt.out || err != nil {
-			t.Errorf("Marshal(%q) = %#q, %v, want %#q, nil", tt.in, b, err, tt.out)
-		}
+		require.NoError(t, Marshal(tt.in, &buf))
+		assert.Equal(t, tt.out, buf.String())
+		buf.Reset()
 	}
 }
 
 func TestMarshalNumberZeroVal(t *testing.T) {
 	var n Number
-	out, err := Marshal(n)
-	if err != nil {
-		t.Fatal(err)
-	}
-	outStr := string(out)
-	if outStr != "0" {
-		t.Fatalf("Invalid zero val for Number: %q", outStr)
-	}
+	buf := strings.Builder{}
+	require.NoError(t, Marshal(n, &buf))
+	assert.Equal(t, "0", buf.String())
 }
 
 func TestMarshalEmbeds(t *testing.T) {
@@ -1068,14 +1063,10 @@ func TestMarshalEmbeds(t *testing.T) {
 			Q: 18,
 		},
 	}
-	b, err := Marshal(top)
-	if err != nil {
-		t.Fatal(err)
-	}
+	buf := strings.Builder{}
+	require.NoError(t, Marshal(top, &buf))
 	want := "{\"Level0\":1,\"Level1b\":2,\"Level1c\":3,\"Level1a\":5,\"LEVEL1B\":6,\"e\":{\"Level1a\":8,\"Level1b\":9,\"Level1c\":10,\"Level1d\":11,\"x\":12},\"Loop1\":13,\"Loop2\":14,\"X\":15,\"Y\":16,\"Z\":17,\"Q\":18}"
-	if string(b) != want {
-		t.Errorf("Wrong marshal result.\n got: %q\nwant: %q", b, want)
-	}
+	assert.Equal(t, want, buf.String())
 }
 
 func equalError(a, b error) bool {
@@ -1138,20 +1129,18 @@ func TestUnmarshal(t *testing.T) {
 		}
 		if !reflect.DeepEqual(v.Elem().Interface(), tt.out) {
 			t.Errorf("#%d: mismatch\nhave: %#+v\nwant: %#+v", i, v.Elem().Interface(), tt.out)
-			data, _ := Marshal(v.Elem().Interface())
-			println(string(data))
-			data, _ = Marshal(tt.out)
-			println(string(data))
+			_ = Marshal(v.Elem().Interface(), os.Stderr)
+			println("")
+			_ = Marshal(v.Elem().Interface(), os.Stderr)
+			println("")
 			continue
 		}
 
 		// Check round trip also decodes correctly.
 		if tt.err == nil {
-			enc, err := Marshal(v.Interface())
-			if err != nil {
-				t.Errorf("#%d: error re-marshaling: %v", i, err)
-				continue
-			}
+			buf := strings.Builder{}
+			require.NoError(t, Marshal(v.Interface(), &buf), "error re-marshaling")
+			enc := []byte(buf.String())
 			if tt.golden && !bytes.Equal(enc, in) {
 				t.Errorf("#%d: remarshal mismatch:\nhave: %s\nwant: %s", i, enc, in)
 			}
@@ -1180,10 +1169,9 @@ func TestUnmarshalMarshal(t *testing.T) {
 	if err := Unmarshal(jsonBig, &v); err != nil {
 		t.Fatalf("Unmarshal: %v", err)
 	}
-	b, err := Marshal(v)
-	if err != nil {
-		t.Fatalf("Marshal: %v", err)
-	}
+	buf := strings.Builder{}
+	require.NoError(t, Marshal(v, &buf))
+	b := []byte(buf.String())
 	if !bytes.Equal(jsonBig, b) {
 		t.Errorf("Marshal jsonBig")
 		diff(t, b, jsonBig)
@@ -1228,10 +1216,9 @@ func TestLargeByteSlice(t *testing.T) {
 	for i := range s0 {
 		s0[i] = byte(i)
 	}
-	b, err := Marshal(s0)
-	if err != nil {
-		t.Fatalf("Marshal: %v", err)
-	}
+	buf := strings.Builder{}
+	require.NoError(t, Marshal(s0, &buf))
+	b := []byte(buf.String())
 	var s1 []byte
 	if err := Unmarshal(b, &s1); err != nil {
 		t.Fatalf("Unmarshal: %v", err)
@@ -1271,10 +1258,9 @@ func TestUnmarshalPtrPtr(t *testing.T) {
 func TestEscape(t *testing.T) {
 	const input = `"foobar"<html>` + " [\u2028 \u2029]"
 	const expected = `"\"foobar\"\u003chtml\u003e [\u2028 \u2029]"`
-	b, err := Marshal(input)
-	if err != nil {
-		t.Fatalf("Marshal error: %v", err)
-	}
+	buf := strings.Builder{}
+	require.NoError(t, Marshal(input, &buf))
+	b := []byte(buf.String())
 	if s := string(b); s != expected {
 		t.Errorf("Encoding of [%s]:\n got [%s]\nwant [%s]", input, s, expected)
 	}
@@ -1930,19 +1916,12 @@ func TestStringKind(t *testing.T) {
 		"foo": 42,
 	}
 
-	data, err := Marshal(m1)
-	if err != nil {
-		t.Errorf("Unexpected error marshaling: %v", err)
-	}
+	buf := strings.Builder{}
+	require.NoError(t, Marshal(m1, &buf))
+	data := []byte(buf.String())
 
-	err = Unmarshal(data, &m2)
-	if err != nil {
-		t.Errorf("Unexpected error unmarshaling: %v", err)
-	}
-
-	if !reflect.DeepEqual(m1, m2) {
-		t.Error("Items should be equal after encoding and then decoding")
-	}
+	require.NoError(t, Unmarshal(data, &m2))
+	assert.Equal(t, m1, m2)
 }
 
 // Custom types with []byte as underlying type could not be marshaled
@@ -1953,18 +1932,12 @@ func TestByteKind(t *testing.T) {
 
 	a := byteKind("hello")
 
-	data, err := Marshal(a)
-	if err != nil {
-		t.Error(err)
-	}
+	buf := strings.Builder{}
+	require.NoError(t, Marshal(a, &buf))
+	data := []byte(buf.String())
 	var b byteKind
-	err = Unmarshal(data, &b)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !reflect.DeepEqual(a, b) {
-		t.Errorf("expected %v == %v", a, b)
-	}
+	require.NoError(t, Unmarshal(data, &b))
+	assert.Equal(t, a, b)
 }
 
 // The fix for issue 8962 introduced a regression.
@@ -1974,18 +1947,12 @@ func TestSliceOfCustomByte(t *testing.T) {
 
 	a := []Uint8("hello")
 
-	data, err := Marshal(a)
-	if err != nil {
-		t.Fatal(err)
-	}
+	buf := strings.Builder{}
+	require.NoError(t, Marshal(a, &buf))
+	data := []byte(buf.String())
 	var b []Uint8
-	err = Unmarshal(data, &b)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !reflect.DeepEqual(a, b) {
-		t.Fatalf("expected %v == %v", a, b)
-	}
+	require.NoError(t, Unmarshal(data, &b))
+	assert.Equal(t, a, b)
 }
 
 var decodeTypeErrorTests = []struct {
@@ -2209,15 +2176,10 @@ func TestInvalidStringOption(t *testing.T) {
 		P *int              `json:",string"`
 	}{M: make(map[string]string), S: make([]string, 0), I: num, P: &num}
 
-	data, err := Marshal(item)
-	if err != nil {
-		t.Fatalf("Marshal: %v", err)
-	}
-
-	err = Unmarshal(data, &item)
-	if err != nil {
-		t.Fatalf("Unmarshal: %v", err)
-	}
+	buf := strings.Builder{}
+	require.NoError(t, Marshal(item, &buf))
+	data := []byte(buf.String())
+	require.NoError(t, Unmarshal(data, &item))
 }
 
 // Test unmarshal behavior with regards to embedded unexported structs.
@@ -2448,27 +2410,23 @@ func TestUnmarshalRescanLiteralMangledUnquote(t *testing.T) {
 	}
 	t1 := T{"aaa\tbbb"}
 
-	b, err := Marshal(t1)
-	if err != nil {
-		t.Fatalf("Marshal unexpected error: %v", err)
-	}
+	buf := strings.Builder{}
+	require.NoError(t, Marshal(t1, &buf))
+	b := []byte(buf.String())
+	m, _ := json.Marshal(t1)
+	require.Equal(t, m, b)
+
 	var t2 T
-	if err := Unmarshal(b, &t2); err != nil {
-		t.Fatalf("Unmarshal unexpected error: %v", err)
-	}
-	if t1 != t2 {
-		t.Errorf("Marshal and Unmarshal roundtrip mismatch: want %q got %q", t1, t2)
-	}
+	require.NoError(t, Unmarshal(b, &t2))
+	assert.Equal(t, t1, t2)
 
 	// See golang.org/issues/39555.
 	input := map[textUnmarshalerString]string{"FOO": "", `"`: ""}
 
-	encoded, err := Marshal(input)
-	if err != nil {
-		t.Fatalf("Marshal unexpected error: %v", err)
-	}
+	buf.Reset()
+	require.NoError(t, Marshal(input, &buf))
 	var got map[textUnmarshalerString]string
-	if err := Unmarshal(encoded, &got); err != nil {
+	if err := Unmarshal([]byte(buf.String()), &got); err != nil {
 		t.Fatalf("Unmarshal unexpected error: %v", err)
 	}
 	want := map[textUnmarshalerString]string{"foo": "", `"`: ""}

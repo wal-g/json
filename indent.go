@@ -6,16 +6,17 @@ package json
 
 import (
 	"bytes"
+	"io"
 )
 
 // Compact appends to dst the JSON-encoded src with
 // insignificant space characters elided.
-func Compact(dst *bytes.Buffer, src []byte) error {
-	return compact(dst, src, false)
+func Compact(writer io.Writer, src []byte) error {
+	return compact(writer, src, false)
 }
 
-func compact(dst *bytes.Buffer, src []byte, escape bool) error {
-	origLen := dst.Len()
+func compact(writer io.Writer, src []byte, escape bool) error {
+	dst := bytes.Buffer{}
 	scan := newScanner()
 	defer freeScanner(scan)
 	start := 0
@@ -50,13 +51,13 @@ func compact(dst *bytes.Buffer, src []byte, escape bool) error {
 		}
 	}
 	if scan.eof() == scanError {
-		dst.Truncate(origLen)
 		return scan.err
 	}
 	if start < len(src) {
 		dst.Write(src[start:])
 	}
-	return nil
+	_, err := writer.Write(dst.Bytes())
+	return err
 }
 
 func newline(dst *bytes.Buffer, prefix, indent string, depth int) {

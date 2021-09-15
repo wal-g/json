@@ -9,6 +9,7 @@ import (
 	"math"
 	"math/rand"
 	"reflect"
+	"strings"
 	"testing"
 )
 
@@ -230,11 +231,12 @@ func initBig() {
 	if testing.Short() {
 		n = 100
 	}
-	b, err := Marshal(genValue(n))
+	buf := strings.Builder{}
+	err := Marshal(genValue(n), &buf)
 	if err != nil {
 		panic(err)
 	}
-	jsonBig = b
+	jsonBig = []byte(buf.String())
 }
 
 func genValue(n int) interface{} {

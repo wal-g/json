@@ -6,6 +6,8 @@ package json
 
 import (
 	"bytes"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"io"
 	"log"
 	"net"
@@ -252,13 +254,10 @@ func TestRawMessage(t *testing.T) {
 	if string([]byte(data.Id)) != raw {
 		t.Fatalf("Raw mismatch: have %#q want %#q", []byte(data.Id), raw)
 	}
-	b, err := Marshal(&data)
-	if err != nil {
-		t.Fatalf("Marshal: %v", err)
-	}
-	if string(b) != msg {
-		t.Fatalf("Marshal: have %#q want %#q", b, msg)
-	}
+
+	buf := strings.Builder{}
+	require.NoError(t, Marshal(&data, &buf))
+	assert.Equal(t, msg, buf.String())
 }
 
 func TestNullRawMessage(t *testing.T) {
@@ -279,13 +278,9 @@ func TestNullRawMessage(t *testing.T) {
 	if data.IdPtr != nil {
 		t.Fatalf("Raw pointer mismatch: have non-nil, want nil")
 	}
-	b, err := Marshal(&data)
-	if err != nil {
-		t.Fatalf("Marshal: %v", err)
-	}
-	if string(b) != msg {
-		t.Fatalf("Marshal: have %#q want %#q", b, msg)
-	}
+	buf := strings.Builder{}
+	require.NoError(t, Marshal(&data, &buf))
+	assert.Equal(t, msg, buf.String())
 }
 
 var blockingTests = []string{

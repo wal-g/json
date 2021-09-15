@@ -14,7 +14,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	"fmt"
-	"internal/testenv"
+	"github.com/stretchr/testify/require"
 	"io"
 	"os"
 	"reflect"
@@ -63,9 +63,11 @@ func codeInit() {
 		panic("unmarshal code.json: " + err.Error())
 	}
 
-	if data, err = Marshal(&codeStruct); err != nil {
+	b := bytes.Buffer{}
+	if err = Marshal(&codeStruct, &b); err != nil {
 		panic("marshal code.json: " + err.Error())
 	}
+	data = b.Bytes()
 
 	if !bytes.Equal(data, codeJSON) {
 		println("different lengths", len(data), len(codeJSON))
@@ -106,11 +108,11 @@ func BenchmarkCodeMarshal(b *testing.B) {
 		codeInit()
 		b.StartTimer()
 	}
+	builder := strings.Builder{}
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			if _, err := Marshal(&codeStruct); err != nil {
-				b.Fatal("Marshal:", err)
-			}
+			require.NoError(b, Marshal(&codeStruct, &builder))
+			builder.Reset()
 		}
 	})
 	b.SetBytes(int64(len(codeJSON)))
@@ -126,10 +128,10 @@ func benchMarshalBytes(n int) func(*testing.B) {
 		bytes.Repeat(sample, (n/len(sample))+1)[:n],
 	}
 	return func(b *testing.B) {
+		builder := strings.Builder{}
 		for i := 0; i < b.N; i++ {
-			if _, err := Marshal(v); err != nil {
-				b.Fatal("Marshal:", err)
-			}
+			require.NoError(b, Marshal(v, &builder))
+			builder.Reset()
 		}
 	}
 }
@@ -305,10 +307,10 @@ func BenchmarkIssue34127(b *testing.B) {
 		Bar: `foobar`,
 	}
 	b.RunParallel(func(pb *testing.PB) {
+		builder := strings.Builder{}
 		for pb.Next() {
-			if _, err := Marshal(&j); err != nil {
-				b.Fatal(err)
-			}
+			require.NoError(b, Marshal(&j, &builder))
+			builder.Reset()
 		}
 	})
 }
@@ -329,9 +331,6 @@ func BenchmarkUnmapped(b *testing.B) {
 func BenchmarkTypeFieldsCache(b *testing.B) {
 	b.ReportAllocs()
 	var maxTypes int = 1e6
-	if testenv.Builder() != "" {
-		maxTypes = 1e3 // restrict cache sizes on builders
-	}
 
 	// Dynamically generate many new types.
 	types := make([]reflect.Type, maxTypes)

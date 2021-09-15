@@ -5,6 +5,8 @@
 package json
 
 import (
+	"github.com/stretchr/testify/require"
+	"strings"
 	"testing"
 )
 
@@ -96,16 +98,11 @@ var structTagObjectKeyTests = []struct {
 }
 
 func TestStructTagObjectKey(t *testing.T) {
+	buf := strings.Builder{}
 	for _, tt := range structTagObjectKeyTests {
-		b, err := Marshal(tt.raw)
-		if err != nil {
-			t.Fatalf("Marshal(%#q) failed: %v", tt.raw, err)
-		}
+		require.NoError(t, Marshal(tt.raw, &buf))
 		var f interface{}
-		err = Unmarshal(b, &f)
-		if err != nil {
-			t.Fatalf("Unmarshal(%#q) failed: %v", b, err)
-		}
+		require.NoError(t, Unmarshal([]byte(buf.String()), &f))
 		for i, v := range f.(map[string]interface{}) {
 			switch i {
 			case tt.key:
@@ -113,8 +110,9 @@ func TestStructTagObjectKey(t *testing.T) {
 					t.Fatalf("Unexpected value: %#q, want %v", s, tt.value)
 				}
 			default:
-				t.Fatalf("Unexpected key: %#q, from %#q", i, b)
+				t.Fatalf("Unexpected key: %#q, from %#q", i, buf.String())
 			}
 		}
+		buf.Reset()
 	}
 }
