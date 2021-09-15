@@ -618,9 +618,7 @@ func stringEncoder(e *writerEncodeState, v reflect.Value, opts encOpts) error {
 		if err := e2.string(v.String(), opts.escapeHTML); err != nil {
 			return err
 		}
-		// TODO: not to use Builder here
 		return e.stringBytes([]byte(builder.String()), false)
-		//encodeStatePool.Put(e2)
 	} else {
 		return e.string(v.String(), opts.escapeHTML)
 	}
