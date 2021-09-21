@@ -108,10 +108,10 @@ func BenchmarkCodeMarshal(b *testing.B) {
 		codeInit()
 		b.StartTimer()
 	}
-	builder := strings.Builder{}
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			require.NoError(b, Marshal(&codeStruct, &builder))
+			builder := &strings.Builder{}
+			require.NoError(b, Marshal(&codeStruct, builder))
 			builder.Reset()
 		}
 	})
