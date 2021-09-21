@@ -5,7 +5,9 @@
 package json
 
 import (
+	"fmt"
 	"regexp"
+	"strings"
 	"testing"
 )
 
@@ -68,7 +70,7 @@ func TestNumberIsValid(t *testing.T) {
 		}
 
 		var f float64
-		if err := Unmarshal([]byte(test), &f); err != nil {
+		if err := Unmarshal(strings.NewReader(test), &f); err != nil {
 			t.Errorf("%s should be valid but Unmarshal failed: %v", test, err)
 		}
 
@@ -77,43 +79,43 @@ func TestNumberIsValid(t *testing.T) {
 		}
 	}
 
-	invalidTests := []string{
-		"",
-		"invalid",
-		"1.0.1",
-		"1..1",
-		"-1-2",
-		"012a42",
-		"01.2",
-		"012",
-		"12E12.12",
-		"1e2e3",
-		"1e+-2",
-		"1e--23",
-		"1e",
-		"e1",
-		"1e+",
-		"1ea",
-		"1a",
-		"1.a",
-		"1.",
-		"01",
-		"1.e1",
-	}
+	for _, test := range []string{
+			"",
+			"invalid",
+			"1.0.1",
+			"1..1",
+			"-1-2",
+			"012a42",
+			"01.2",
+			"012",
+			"12E12.12",
+			"1e2e3",
+			"1e+-2",
+			"1e--23",
+			"1e",
+			"e1",
+			"1e+",
+			"1ea",
+			"1a",
+			"1.a",
+			"1.",
+			"01",
+			"1.e1",
+		} {
+		t.Run(fmt.Sprintf("Test %s is invalid", test), func(t *testing.T) {
+			if isValidNumber(test) {
+				t.Errorf("%s should be invalid", test)
+			}
 
-	for _, test := range invalidTests {
-		if isValidNumber(test) {
-			t.Errorf("%s should be invalid", test)
-		}
+			var f float64
+			if err := Unmarshal(strings.NewReader(test), &f); err == nil {
+				t.Errorf("%s should be invalid but unmarshal wrote %v", test, f)
+			}
 
-		var f float64
-		if err := Unmarshal([]byte(test), &f); err == nil {
-			t.Errorf("%s should be invalid but unmarshal wrote %v", test, f)
-		}
-
-		if jsonNumberRegexp.MatchString(test) {
-			t.Errorf("%s should be invalid but matches regexp", test)
-		}
+			if jsonNumberRegexp.MatchString(test) {
+				t.Errorf("%s should be invalid but matches regexp", test)
+			}
+		})
 	}
 }
 

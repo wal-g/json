@@ -15,8 +15,8 @@ type Decoder struct {
 	r       io.Reader
 	buf     []byte
 	d       decodeState
-	scanp   int   // start of unread data in buf
-	scanned int64 // amount of data already scanned
+	scanp   int   // start of unread reader in buf
+	scanned int64 // amount of reader already scanned
 	scan    scanner
 	err     error
 
@@ -27,7 +27,7 @@ type Decoder struct {
 // NewDecoder returns a new decoder that reads from r.
 //
 // The decoder introduces its own buffering and may
-// read data from r beyond the JSON values requested.
+// read reader from r beyond the JSON values requested.
 func NewDecoder(r io.Reader) *Decoder {
 	return &Decoder{r: r}
 }
@@ -64,7 +64,7 @@ func (dec *Decoder) Decode(v interface{}) error {
 	if err != nil {
 		return err
 	}
-	dec.d.init(dec.buf[dec.scanp : dec.scanp+n])
+	dec.d.init(newStreamReader(bytes.NewReader(dec.buf[dec.scanp : dec.scanp+n])))
 	dec.scanp += n
 
 	// Don't save err from unmarshal into dec.err:
@@ -78,7 +78,7 @@ func (dec *Decoder) Decode(v interface{}) error {
 	return err
 }
 
-// Buffered returns a reader of the data remaining in the Decoder's
+// Buffered returns a reader of the reader remaining in the Decoder's
 // buffer. The reader is valid until the next call to Decode.
 func (dec *Decoder) Buffered() io.Reader {
 	return bytes.NewReader(dec.buf[dec.scanp:])
@@ -145,7 +145,7 @@ Input:
 
 func (dec *Decoder) refill() error {
 	// Make room to read more into the buffer.
-	// First slide down data already consumed.
+	// First slide down reader already consumed.
 	if dec.scanp > 0 {
 		dec.scanned += int64(dec.scanp)
 		n := copy(dec.buf, dec.buf[dec.scanp:])
@@ -269,7 +269,7 @@ func (m RawMessage) MarshalJSON() ([]byte, error) {
 	return m, nil
 }
 
-// UnmarshalJSON sets *m to a copy of data.
+// UnmarshalJSON sets *m to a copy of reader.
 func (m *RawMessage) UnmarshalJSON(data []byte) error {
 	if m == nil {
 		return errors.New("json.RawMessage: UnmarshalJSON on nil pointer")

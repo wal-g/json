@@ -72,8 +72,8 @@ func newline(dst *bytes.Buffer, prefix, indent string, depth int) {
 // Each element in a JSON object or array begins on a new,
 // indented line beginning with prefix followed by one or more
 // copies of indent according to the indentation nesting.
-// The data appended to dst does not begin with the prefix nor
-// any indentation, to make it easier to embed inside other formatted JSON data.
+// The reader appended to dst does not begin with the prefix nor
+// any indentation, to make it easier to embed inside other formatted JSON reader.
 // Although leading space characters (space, tab, carriage return, newline)
 // at the beginning of src are dropped, trailing space characters
 // at the end of src are preserved and copied to dst.

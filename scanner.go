@@ -18,14 +18,14 @@ import (
 	"sync"
 )
 
-// Valid reports whether data is a valid JSON encoding.
+// Valid reports whether reader is a valid JSON encoding.
 func Valid(data []byte) bool {
 	scan := newScanner()
 	defer freeScanner(scan)
 	return checkValid(data, scan) == nil
 }
 
-// checkValid verifies that data is valid JSON-encoded data.
+// checkValid verifies that reader is valid JSON-encoded reader.
 // scan is passed in for use by checkValid to avoid an allocation.
 func checkValid(data []byte, scan *scanner) error {
 	scan.reset()

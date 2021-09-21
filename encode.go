@@ -152,7 +152,7 @@ import (
 // Attempting to encode such a value causes Marshal to return
 // an UnsupportedTypeError.
 //
-// JSON cannot represent cyclic data structures and Marshal does not
+// JSON cannot represent cyclic reader structures and Marshal does not
 // handle them. Passing cyclic structures to Marshal will result in
 // an error.
 //

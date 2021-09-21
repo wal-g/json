@@ -160,7 +160,7 @@ var (
 	ummapXY = map[unmarshalerText]bool{{"x", "y"}: true}
 )
 
-// Test data structures for anonymous fields.
+// Test reader structures for anonymous fields.
 
 type Point struct {
 	Z int
@@ -388,7 +388,7 @@ func (b *intWithPtrMarshalText) UnmarshalText(data []byte) error {
 }
 
 type mapStringToStringData struct {
-	Data map[string]string `json:"data"`
+	Data map[string]string `json:"reader"`
 }
 
 type unmarshalTest struct {
@@ -909,14 +909,14 @@ var unmarshalTests = []unmarshalTest{
 	// issue 26444
 	// UnmarshalTypeError without field & struct values
 	{
-		in:  `{"data":{"test1": "bob", "test2": 123}}`,
+		in:  `{"reader":{"test1": "bob", "test2": 123}}`,
 		ptr: new(mapStringToStringData),
-		err: &UnmarshalTypeError{Value: "number", Type: reflect.TypeOf(""), Offset: 37, Struct: "mapStringToStringData", Field: "data"},
+		err: &UnmarshalTypeError{Value: "number", Type: reflect.TypeOf(""), Offset: 37, Struct: "mapStringToStringData", Field: "reader"},
 	},
 	{
-		in:  `{"data":{"test1": 123, "test2": "bob"}}`,
+		in:  `{"reader":{"test1": 123, "test2": "bob"}}`,
 		ptr: new(mapStringToStringData),
-		err: &UnmarshalTypeError{Value: "number", Type: reflect.TypeOf(""), Offset: 21, Struct: "mapStringToStringData", Field: "data"},
+		err: &UnmarshalTypeError{Value: "number", Type: reflect.TypeOf(""), Offset: 21, Struct: "mapStringToStringData", Field: "reader"},
 	},
 
 	// trying to decode JSON arrays or objects via TextUnmarshaler
@@ -1104,12 +1104,12 @@ func TestUnmarshal(t *testing.T) {
 		v := reflect.New(typ)
 
 		if !reflect.DeepEqual(tt.ptr, v.Interface()) {
-			// There's no reason for ptr to point to non-zero data,
-			// as we decode into new(right-type), so the data is
+			// There's no reason for ptr to point to non-zero reader,
+			// as we decode into new(right-type), so the reader is
 			// discarded.
 			// This can easily mean tests that silently don't test
 			// what they should. To test decoding into existing
-			// data, see TestPrefilled.
+			// reader, see TestPrefilled.
 			t.Errorf("#%d: unmarshalTest.ptr %#v is not a pointer to a zero value", i, tt.ptr)
 			continue
 		}
@@ -1166,7 +1166,7 @@ func TestUnmarshal(t *testing.T) {
 func TestUnmarshalMarshal(t *testing.T) {
 	initBig()
 	var v interface{}
-	if err := Unmarshal(jsonBig, &v); err != nil {
+	if err := Unmarshal(bytes.NewReader(jsonBig), &v); err != nil {
 		t.Fatalf("Unmarshal: %v", err)
 	}
 	buf := strings.Builder{}
@@ -1218,9 +1218,8 @@ func TestLargeByteSlice(t *testing.T) {
 	}
 	buf := strings.Builder{}
 	require.NoError(t, Marshal(s0, &buf))
-	b := []byte(buf.String())
 	var s1 []byte
-	if err := Unmarshal(b, &s1); err != nil {
+	if err := Unmarshal(strings.NewReader(buf.String()), &s1); err != nil {
 		t.Fatalf("Unmarshal: %v", err)
 	}
 	if !bytes.Equal(s0, s1) {
@@ -1236,7 +1235,7 @@ type Xint struct {
 func TestUnmarshalInterface(t *testing.T) {
 	var xint Xint
 	var i interface{} = &xint
-	if err := Unmarshal([]byte(`{"X":1}`), &i); err != nil {
+	if err := Unmarshal(strings.NewReader(`{"X":1}`), &i); err != nil {
 		t.Fatalf("Unmarshal: %v", err)
 	}
 	if xint.X != 1 {
@@ -1247,7 +1246,7 @@ func TestUnmarshalInterface(t *testing.T) {
 func TestUnmarshalPtrPtr(t *testing.T) {
 	var xint Xint
 	pxint := &xint
-	if err := Unmarshal([]byte(`{"X":1}`), &pxint); err != nil {
+	if err := Unmarshal(strings.NewReader(`{"X":1}`), &pxint); err != nil {
 		t.Fatalf("Unmarshal: %v", err)
 	}
 	if xint.X != 1 {
@@ -1641,7 +1640,7 @@ func TestRefUnmarshal(t *testing.T) {
 	*want.R3 = 13
 
 	var got S
-	if err := Unmarshal([]byte(`{"R0":"ref","R1":"ref","R2":"ref","R3":"ref"}`), &got); err != nil {
+	if err := Unmarshal(strings.NewReader(`{"R0":"ref","R1":"ref","R2":"ref","R3":"ref"}`), &got); err != nil {
 		t.Fatalf("Unmarshal: %v", err)
 	}
 	if !reflect.DeepEqual(got, want) {
@@ -1676,12 +1675,11 @@ func TestNullString(t *testing.T) {
 		B int  `json:",string"`
 		C *int `json:",string"`
 	}
-	data := []byte(`{"A": "1", "B": null, "C": null}`)
 	var s T
 	s.B = 1
 	s.C = new(int)
 	*s.C = 2
-	err := Unmarshal(data, &s)
+	err := Unmarshal(strings.NewReader(`{"A": "1", "B": null, "C": null}`), &s)
 	if err != nil {
 		t.Fatalf("Unmarshal: %v", err)
 	}
@@ -1726,7 +1724,7 @@ func TestInterfaceSet(t *testing.T) {
 	for _, tt := range interfaceSetTests {
 		b := struct{ X interface{} }{tt.pre}
 		blob := `{"X":` + tt.json + `}`
-		if err := Unmarshal([]byte(blob), &b); err != nil {
+		if err := Unmarshal(strings.NewReader(blob), &b); err != nil {
 			t.Errorf("Unmarshal %#q: %v", blob, err)
 			continue
 		}
@@ -1844,7 +1842,7 @@ func TestUnmarshalNulls(t *testing.T) {
 
 	before := nulls.Time.String()
 
-	err := Unmarshal(jsonData, &nulls)
+	err := Unmarshal(bytes.NewReader(jsonData), &nulls)
 	if err != nil {
 		t.Errorf("Unmarshal of null values failed: %v", err)
 	}
@@ -1918,9 +1916,7 @@ func TestStringKind(t *testing.T) {
 
 	buf := strings.Builder{}
 	require.NoError(t, Marshal(m1, &buf))
-	data := []byte(buf.String())
-
-	require.NoError(t, Unmarshal(data, &m2))
+	require.NoError(t, Unmarshal(strings.NewReader(buf.String()), &m2))
 	assert.Equal(t, m1, m2)
 }
 
@@ -1934,9 +1930,8 @@ func TestByteKind(t *testing.T) {
 
 	buf := strings.Builder{}
 	require.NoError(t, Marshal(a, &buf))
-	data := []byte(buf.String())
 	var b byteKind
-	require.NoError(t, Unmarshal(data, &b))
+	require.NoError(t, Unmarshal(strings.NewReader(buf.String()), &b))
 	assert.Equal(t, a, b)
 }
 
@@ -1949,9 +1944,8 @@ func TestSliceOfCustomByte(t *testing.T) {
 
 	buf := strings.Builder{}
 	require.NoError(t, Marshal(a, &buf))
-	data := []byte(buf.String())
 	var b []Uint8
-	require.NoError(t, Unmarshal(data, &b))
+	require.NoError(t, Unmarshal(strings.NewReader(buf.String()), &b))
 	assert.Equal(t, a, b)
 }
 
@@ -1969,7 +1963,7 @@ var decodeTypeErrorTests = []struct {
 
 func TestUnmarshalTypeError(t *testing.T) {
 	for _, item := range decodeTypeErrorTests {
-		err := Unmarshal([]byte(item.src), item.dest)
+		err := Unmarshal(strings.NewReader(item.src), item.dest)
 		if _, ok := err.(*UnmarshalTypeError); !ok {
 			t.Errorf("expected type error for Unmarshal(%q, type %T): got %T",
 				item.src, item.dest, err)
@@ -1991,7 +1985,7 @@ var unmarshalSyntaxTests = []string{
 func TestUnmarshalSyntax(t *testing.T) {
 	var x interface{}
 	for _, src := range unmarshalSyntaxTests {
-		err := Unmarshal([]byte(src), &x)
+		err := Unmarshal(strings.NewReader(src), &x)
 		if _, ok := err.(*SyntaxError); !ok {
 			t.Errorf("expected syntax error for Unmarshal(%q): got %T", src, err)
 		}
@@ -2009,11 +2003,10 @@ type unexportedFields struct {
 }
 
 func TestUnmarshalUnexported(t *testing.T) {
-	input := `{"Name": "Bob", "m": {"x": 123}, "m2": {"y": 456}, "abcd": {"z": 789}, "s": [2, 3]}`
 	want := &unexportedFields{Name: "Bob"}
 
 	out := &unexportedFields{}
-	err := Unmarshal([]byte(input), out)
+	err := Unmarshal(strings.NewReader(`{"Name": "Bob", "m": {"x": 123}, "m2": {"y": 456}, "abcd": {"z": 789}, "s": [2, 3]}`), out)
 	if err != nil {
 		t.Errorf("got error %v, expected nil", err)
 	}
@@ -2040,7 +2033,7 @@ func (t *Time3339) UnmarshalJSON(b []byte) error {
 
 func TestUnmarshalJSONLiteralError(t *testing.T) {
 	var t3 Time3339
-	err := Unmarshal([]byte(`"0000-00-00T00:00:00Z"`), &t3)
+	err := Unmarshal(strings.NewReader(`"0000-00-00T00:00:00Z"`), &t3)
 	if err == nil {
 		t.Fatalf("expected error; got time %v", time.Time(t3))
 	}
@@ -2050,19 +2043,18 @@ func TestUnmarshalJSONLiteralError(t *testing.T) {
 }
 
 // Test that extra object elements in an array do not result in a
-// "data changing underfoot" error.
+// "reader changing underfoot" error.
 // Issue 3717
 func TestSkipArrayObjects(t *testing.T) {
-	json := `[{}]`
 	var dest [0]interface{}
 
-	err := Unmarshal([]byte(json), &dest)
+	err := Unmarshal(strings.NewReader(`[{}]`), &dest)
 	if err != nil {
 		t.Errorf("got error %q, want nil", err)
 	}
 }
 
-// Test semantics of pre-filled data, such as struct fields, map elements,
+// Test semantics of pre-filled reader, such as struct fields, map elements,
 // slices, and arrays.
 // Issues 4900 and 8837, among others.
 func TestPrefilled(t *testing.T) {
@@ -2106,7 +2098,7 @@ func TestPrefilled(t *testing.T) {
 
 	for _, tt := range prefillTests {
 		ptrstr := fmt.Sprintf("%v", tt.ptr)
-		err := Unmarshal([]byte(tt.in), tt.ptr) // tt.ptr edited here
+		err := Unmarshal(strings.NewReader(tt.in), tt.ptr) // tt.ptr edited here
 		if err != nil {
 			t.Errorf("Unmarshal: %v", err)
 		}
@@ -2126,9 +2118,8 @@ var invalidUnmarshalTests = []struct {
 }
 
 func TestInvalidUnmarshal(t *testing.T) {
-	buf := []byte(`{"a":"1"}`)
 	for _, tt := range invalidUnmarshalTests {
-		err := Unmarshal(buf, tt.v)
+		err := Unmarshal(strings.NewReader(`{"a":"1"}`), tt.v)
 		if err == nil {
 			t.Errorf("Unmarshal expecting error, got nil")
 			continue
@@ -2150,9 +2141,8 @@ var invalidUnmarshalTextTests = []struct {
 }
 
 func TestInvalidUnmarshalText(t *testing.T) {
-	buf := []byte(`123`)
 	for _, tt := range invalidUnmarshalTextTests {
-		err := Unmarshal(buf, tt.v)
+		err := Unmarshal(strings.NewReader(`123`), tt.v)
 		if err == nil {
 			t.Errorf("Unmarshal expecting error, got nil")
 			continue
@@ -2178,8 +2168,7 @@ func TestInvalidStringOption(t *testing.T) {
 
 	buf := strings.Builder{}
 	require.NoError(t, Marshal(item, &buf))
-	data := []byte(buf.String())
-	require.NoError(t, Unmarshal(data, &item))
+	require.NoError(t, Unmarshal(strings.NewReader(buf.String()), &item))
 }
 
 // Test unmarshal behavior with regards to embedded unexported structs.
@@ -2303,7 +2292,7 @@ func TestUnmarshalEmbeddedUnexported(t *testing.T) {
 	}}
 
 	for i, tt := range tests {
-		err := Unmarshal([]byte(tt.in), tt.ptr)
+		err := Unmarshal(strings.NewReader(tt.in), tt.ptr)
 		if !equalError(err, tt.err) {
 			t.Errorf("#%d: %v, want %v", i, err, tt.err)
 		}
@@ -2358,7 +2347,7 @@ func TestUnmarshalPanic(t *testing.T) {
 			t.Errorf("panic() = (%T)(%v), want 0xdead", got, got)
 		}
 	}()
-	Unmarshal([]byte("{}"), &unmarshalPanic{})
+	Unmarshal(strings.NewReader("{}"), &unmarshalPanic{})
 	t.Fatalf("Unmarshal should have panicked")
 }
 
@@ -2367,9 +2356,7 @@ func TestUnmarshalPanic(t *testing.T) {
 func TestUnmarshalRecursivePointer(t *testing.T) {
 	var v interface{}
 	v = &v
-	data := []byte(`{"a": "b"}`)
-
-	if err := Unmarshal(data, v); err != nil {
+	if err := Unmarshal(strings.NewReader(`{"a": "b"}`), v); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -2385,7 +2372,7 @@ func (m *textUnmarshalerString) UnmarshalText(text []byte) error {
 // See golang.org/issues/34437.
 func TestUnmarshalMapWithTextUnmarshalerStringKey(t *testing.T) {
 	var p map[textUnmarshalerString]string
-	if err := Unmarshal([]byte(`{"FOO": "1"}`), &p); err != nil {
+	if err := Unmarshal(strings.NewReader(`{"FOO": "1"}`), &p); err != nil {
 		t.Fatalf("Unmarshal unexpected error: %v", err)
 	}
 
@@ -2397,7 +2384,7 @@ func TestUnmarshalMapWithTextUnmarshalerStringKey(t *testing.T) {
 func TestUnmarshalRescanLiteralMangledUnquote(t *testing.T) {
 	// See golang.org/issues/38105.
 	var p map[textUnmarshalerString]string
-	if err := Unmarshal([]byte(`{"开源":"12345开源"}`), &p); err != nil {
+	if err := Unmarshal(strings.NewReader(`{"开源":"12345开源"}`), &p); err != nil {
 		t.Fatalf("Unmarshal unexpected error: %v", err)
 	}
 	if _, ok := p["开源"]; !ok {
@@ -2417,7 +2404,7 @@ func TestUnmarshalRescanLiteralMangledUnquote(t *testing.T) {
 	require.Equal(t, m, b)
 
 	var t2 T
-	require.NoError(t, Unmarshal(b, &t2))
+	require.NoError(t, Unmarshal(bytes.NewReader(b), &t2))
 	assert.Equal(t, t1, t2)
 
 	// See golang.org/issues/39555.
@@ -2426,7 +2413,7 @@ func TestUnmarshalRescanLiteralMangledUnquote(t *testing.T) {
 	buf.Reset()
 	require.NoError(t, Marshal(input, &buf))
 	var got map[textUnmarshalerString]string
-	if err := Unmarshal([]byte(buf.String()), &got); err != nil {
+	if err := Unmarshal(strings.NewReader(buf.String()), &got); err != nil {
 		t.Fatalf("Unmarshal unexpected error: %v", err)
 	}
 	want := map[textUnmarshalerString]string{"foo": "", `"`: ""}
@@ -2514,7 +2501,7 @@ func TestUnmarshalMaxDepth(t *testing.T) {
 	for _, tc := range testcases {
 		for _, target := range targets {
 			t.Run(target.name+"-"+tc.name, func(t *testing.T) {
-				err := Unmarshal([]byte(tc.data), target.newValue())
+				err := Unmarshal(strings.NewReader(tc.data), target.newValue())
 				if !tc.errMaxDepth {
 					if err != nil {
 						t.Errorf("unexpected error: %v", err)

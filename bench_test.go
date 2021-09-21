@@ -2,11 +2,11 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// Large data benchmark.
-// The JSON data is a summary of agl's changes in the
+// Large reader benchmark.
+// The JSON reader is a summary of agl's changes in the
 // go, webkit, and chromium open source projects.
 // We benchmark converting between the JSON form
-// and in-memory data structures.
+// and in-memory reader structures.
 
 package json
 
@@ -59,7 +59,7 @@ func codeInit() {
 
 	codeJSON = data
 
-	if err := Unmarshal(codeJSON, &codeStruct); err != nil {
+	if err := Unmarshal(bytes.NewReader(codeJSON), &codeStruct); err != nil {
 		panic("unmarshal code.json: " + err.Error())
 	}
 
@@ -221,7 +221,7 @@ func BenchmarkCodeUnmarshal(b *testing.B) {
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
 			var r codeResponse
-			if err := Unmarshal(codeJSON, &r); err != nil {
+			if err := Unmarshal(bytes.NewReader(codeJSON), &r); err != nil {
 				b.Fatal("Unmarshal:", err)
 			}
 		}
@@ -239,7 +239,7 @@ func BenchmarkCodeUnmarshalReuse(b *testing.B) {
 	b.RunParallel(func(pb *testing.PB) {
 		var r codeResponse
 		for pb.Next() {
-			if err := Unmarshal(codeJSON, &r); err != nil {
+			if err := Unmarshal(bytes.NewReader(codeJSON), &r); err != nil {
 				b.Fatal("Unmarshal:", err)
 			}
 		}
@@ -249,11 +249,10 @@ func BenchmarkCodeUnmarshalReuse(b *testing.B) {
 
 func BenchmarkUnmarshalString(b *testing.B) {
 	b.ReportAllocs()
-	data := []byte(`"hello, world"`)
 	b.RunParallel(func(pb *testing.PB) {
 		var s string
 		for pb.Next() {
-			if err := Unmarshal(data, &s); err != nil {
+			if err := Unmarshal(strings.NewReader(`"hello, world"`), &s); err != nil {
 				b.Fatal("Unmarshal:", err)
 			}
 		}
@@ -262,11 +261,10 @@ func BenchmarkUnmarshalString(b *testing.B) {
 
 func BenchmarkUnmarshalFloat64(b *testing.B) {
 	b.ReportAllocs()
-	data := []byte(`3.14`)
 	b.RunParallel(func(pb *testing.PB) {
 		var f float64
 		for pb.Next() {
-			if err := Unmarshal(data, &f); err != nil {
+			if err := Unmarshal(strings.NewReader(`3.14`), &f); err != nil {
 				b.Fatal("Unmarshal:", err)
 			}
 		}
@@ -275,11 +273,10 @@ func BenchmarkUnmarshalFloat64(b *testing.B) {
 
 func BenchmarkUnmarshalInt64(b *testing.B) {
 	b.ReportAllocs()
-	data := []byte(`3`)
 	b.RunParallel(func(pb *testing.PB) {
 		var x int64
 		for pb.Next() {
-			if err := Unmarshal(data, &x); err != nil {
+			if err := Unmarshal(strings.NewReader(`3`), &x); err != nil {
 				b.Fatal("Unmarshal:", err)
 			}
 		}
@@ -288,11 +285,10 @@ func BenchmarkUnmarshalInt64(b *testing.B) {
 
 func BenchmarkIssue10335(b *testing.B) {
 	b.ReportAllocs()
-	j := []byte(`{"a":{ }}`)
 	b.RunParallel(func(pb *testing.PB) {
 		var s struct{}
 		for pb.Next() {
-			if err := Unmarshal(j, &s); err != nil {
+			if err := Unmarshal(strings.NewReader(`{"a":{ }}`), &s); err != nil {
 				b.Fatal(err)
 			}
 		}
@@ -317,11 +313,10 @@ func BenchmarkIssue34127(b *testing.B) {
 
 func BenchmarkUnmapped(b *testing.B) {
 	b.ReportAllocs()
-	j := []byte(`{"s": "hello", "y": 2, "o": {"x": 0}, "a": [1, 99, {"x": 1}]}`)
 	b.RunParallel(func(pb *testing.PB) {
 		var s struct{}
 		for pb.Next() {
-			if err := Unmarshal(j, &s); err != nil {
+			if err := Unmarshal(strings.NewReader(`{"s": "hello", "y": 2, "o": {"x": 0}, "a": [1, 99, {"x": 1}]}`), &s); err != nil {
 				b.Fatal(err)
 			}
 		}
