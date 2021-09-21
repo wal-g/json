@@ -248,7 +248,7 @@ var hex = "0123456789abcdef"
 
 type writerEncodeState struct {
 	io.Writer // output
-	scratch      [64]byte
+	scratch   [64]byte
 
 	// Keep track of what pointers we've seen in the current recursive call
 	// path, to avoid cycles that could lead to a stack overflow. Only do
@@ -261,7 +261,7 @@ type writerEncodeState struct {
 
 func newWriterEncodeState(buf io.Writer) *writerEncodeState {
 	return &writerEncodeState{
-		Writer: buf,
+		Writer:  buf,
 		ptrSeen: make(map[interface{}]struct{}),
 	}
 }

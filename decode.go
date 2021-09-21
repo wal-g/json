@@ -302,7 +302,7 @@ func (d *decodeState) scanNext() error {
 func (d *decodeState) scanWhile(op int) error {
 	s, i := &d.scan, d.off
 	var err error
-	for err = d.load(i); err == nil; err = d.load(i){
+	for err = d.load(i); err == nil; err = d.load(i) {
 		newOp := s.step(s, d.get(i))
 		i++
 		if newOp != op {

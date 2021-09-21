@@ -11,7 +11,7 @@ type streamReader struct {
 	src      io.Reader
 	dropped  int
 	finished bool
-	scanner *scanner
+	scanner  *scanner
 }
 
 func (s *streamReader) Len() int {
@@ -46,8 +46,8 @@ func (s *streamReader) get(i int) byte {
 	return s.buf.String()[i-s.dropped]
 }
 
-func (s *streamReader) getRange(l, r int) []byte{
-	return []byte(s.buf.String()[l - s.dropped:r - s.dropped])
+func (s *streamReader) getRange(l, r int) []byte {
+	return []byte(s.buf.String()[l-s.dropped : r-s.dropped])
 }
 
 func (s *streamReader) drop(i int) error {
@@ -86,9 +86,8 @@ func (s *streamReader) close() error {
 
 func newStreamReader(stream io.Reader) *streamReader {
 	return &streamReader{
-		buf: strings.Builder{},
-		src: stream,
+		buf:     strings.Builder{},
+		src:     stream,
 		scanner: newScanner(),
 	}
 }
-
