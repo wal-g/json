@@ -262,6 +262,7 @@ func (s *streamReader) drop(i int) error {
 	}
 	s.buf.Reset()
 	s.buf.WriteString(str[count:])
+	s.dropped = i
 	return nil
 }
 
@@ -519,7 +520,7 @@ func (d *decodeState) value(v reflect.Value) error {
 			}
 		}
 	}
-	//_ = d.drop(d.Len() - 1)
+	_ = d.drop(d.Len() - 1)
 	return nil
 }
 
