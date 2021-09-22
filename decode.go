@@ -284,7 +284,6 @@ func (d *decodeState) skip() error {
 
 // scanNext processes the byte at d.reader[d.off].
 func (d *decodeState) scanNext() error {
-	// TODO: may be incorrect if here
 	if err := d.load(d.off); err == nil {
 		d.opcode = d.scan.step(&d.scan, d.get(d.off))
 		d.off++
@@ -434,7 +433,6 @@ func (d *decodeState) value(v reflect.Value) error {
 			}
 		}
 	}
-	d.drop()
 	return nil
 }
 
@@ -572,7 +570,6 @@ func (d *decodeState) array(v reflect.Value) error {
 		if v.NumMethod() == 0 {
 			// Decoding into nil interface? Switch to non-reflect code.
 			ai, err := d.arrayInterface()
-			d.drop()
 			if err != nil {
 				return err
 			}
@@ -620,13 +617,11 @@ func (d *decodeState) array(v reflect.Value) error {
 			if err := d.value(v.Index(i)); err != nil {
 				return err
 			}
-			d.drop()
 		} else {
 			// Ran out of fixed array: skip.
 			if err := d.value(reflect.Value{}); err != nil {
 				return err
 			}
-			d.drop()
 		}
 		i++
 
@@ -635,7 +630,6 @@ func (d *decodeState) array(v reflect.Value) error {
 			if err := d.scanWhile(scanSkipSpace); err != nil {
 				return err
 			}
-			d.drop()
 		}
 		if d.opcode == scanEndArray {
 			break
@@ -687,7 +681,6 @@ func (d *decodeState) object(v reflect.Value) error {
 	// Decoding into nil interface? Switch to non-reflect code.
 	if v.Kind() == reflect.Interface && v.NumMethod() == 0 {
 		oi, err := d.objectInterface()
-		d.drop()
 		if err != nil {
 			return err
 		}
@@ -715,7 +708,6 @@ func (d *decodeState) object(v reflect.Value) error {
 				if err := d.skip(); err != nil {
 					return err
 				}
-				d.drop()
 				return nil
 			}
 		}
@@ -730,7 +722,6 @@ func (d *decodeState) object(v reflect.Value) error {
 		if err := d.skip(); err != nil {
 			return err
 		}
-		d.drop()
 		return nil
 	}
 
@@ -742,7 +733,6 @@ func (d *decodeState) object(v reflect.Value) error {
 		if err := d.scanWhile(scanSkipSpace); err != nil {
 			return err
 		}
-		d.drop()
 		if d.opcode == scanEndObject {
 			// closing } - can only happen on first iteration.
 			break
@@ -757,7 +747,6 @@ func (d *decodeState) object(v reflect.Value) error {
 			return err
 		}
 		item := d.getRange(start, d.readIndex())
-		d.drop()
 		key, ok := unquoteBytes(item)
 		if !ok {
 			panic(phasePanicMsg)
@@ -835,7 +824,6 @@ func (d *decodeState) object(v reflect.Value) error {
 		if err := d.scanWhile(scanSkipSpace); err != nil {
 			return err
 		}
-		d.drop()
 
 		if destring {
 			val, err := d.valueQuoted()
@@ -859,7 +847,6 @@ func (d *decodeState) object(v reflect.Value) error {
 				return err
 			}
 		}
-		d.drop()
 
 		// Write value back to map;
 		// if using struct, subv points into struct already.
@@ -872,7 +859,6 @@ func (d *decodeState) object(v reflect.Value) error {
 				if err := d.literalStore(item, kv, true); err != nil {
 					return err
 				}
-				d.drop()
 				kv = kv.Elem()
 			case kt.Kind() == reflect.String:
 				kv = reflect.ValueOf(key).Convert(kt)
@@ -909,7 +895,6 @@ func (d *decodeState) object(v reflect.Value) error {
 				return err
 			}
 		}
-		d.drop()
 		// Reset errorContext to its original state.
 		// Keep the same underlying array for FieldStack, to reuse the
 		// space and avoid unnecessary allocs.
@@ -1132,7 +1117,6 @@ func (d *decodeState) valueInterface() (val interface{}, err error) {
 		if val, err = d.arrayInterface(); err != nil {
 			return nil, err
 		}
-		d.drop()
 		if err = d.scanNext(); err != nil {
 			return nil, err
 		}
@@ -1140,7 +1124,6 @@ func (d *decodeState) valueInterface() (val interface{}, err error) {
 		if val, err = d.objectInterface(); err != nil {
 			return nil, err
 		}
-		d.drop()
 		if err = d.scanNext(); err != nil {
 			return nil, err
 		}
@@ -1148,7 +1131,6 @@ func (d *decodeState) valueInterface() (val interface{}, err error) {
 		if val, err = d.literalInterface(); err != nil {
 			return nil, err
 		}
-		d.drop()
 	}
 	return
 }
@@ -1164,10 +1146,8 @@ func (d *decodeState) arrayInterface() ([]interface{}, error) {
 		if d.opcode == scanEndArray {
 			break
 		}
-		d.drop()
 
 		valInt, err := d.valueInterface()
-		d.drop()
 		if err != nil {
 			return nil, err
 		}
@@ -1178,7 +1158,6 @@ func (d *decodeState) arrayInterface() ([]interface{}, error) {
 			if err = d.scanWhile(scanSkipSpace); err != nil {
 				return nil, err
 			}
-			d.drop()
 		}
 		if d.opcode == scanEndArray {
 			break
@@ -1198,7 +1177,6 @@ func (d *decodeState) objectInterface() (map[string]interface{}, error) {
 		if err := d.scanWhile(scanSkipSpace); err != nil {
 			return nil, err
 		}
-		d.drop()
 		if d.opcode == scanEndObject {
 			// closing } - can only happen on first iteration.
 			break
@@ -1213,7 +1191,6 @@ func (d *decodeState) objectInterface() (map[string]interface{}, error) {
 			return nil, err
 		}
 		item := d.getRange(start, d.readIndex())
-		d.drop()
 		key, ok := unquote(item)
 		if !ok {
 			panic(phasePanicMsg)
@@ -1231,11 +1208,9 @@ func (d *decodeState) objectInterface() (map[string]interface{}, error) {
 		if err := d.scanWhile(scanSkipSpace); err != nil {
 			return nil, err
 		}
-		d.drop()
 
 		// Read value.
 		valInt, err := d.valueInterface()
-		d.drop()
 		if err != nil {
 			return nil, err
 		}
@@ -1246,7 +1221,6 @@ func (d *decodeState) objectInterface() (map[string]interface{}, error) {
 			if err = d.scanWhile(scanSkipSpace); err != nil {
 				return nil, err
 			}
-			d.drop()
 		}
 		if d.opcode == scanEndObject {
 			break
@@ -1269,7 +1243,6 @@ func (d *decodeState) literalInterface() (interface{}, error) {
 	}
 
 	item := d.getRange(start, d.readIndex())
-	d.drop()
 
 	switch c := item[0]; c {
 	case 'n': // null

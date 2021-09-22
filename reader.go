@@ -52,18 +52,6 @@ func (s *streamReader) getRange(l, r int) []byte {
 func (s *streamReader) drop() {
 	s.dropped += s.buf.Len()
 	s.buf.Reset()
-	//count := i - s.dropped
-	//if i <= 0 {
-	//	return
-	//}
-	//str := s.buf.String()
-	//if count > len(str) {
-	//	return
-	//}
-	//s.buf.Reset()
-	//s.buf.WriteString(str[count:])
-	//s.dropped = i
-	//return
 }
 
 func (s *streamReader) close() error {
