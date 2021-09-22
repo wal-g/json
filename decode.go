@@ -388,6 +388,7 @@ Switch:
 // reads the following byte ahead. If v is invalid, the value is discarded.
 // The first byte of the value has been read already.
 func (d *decodeState) value(v reflect.Value) error {
+	defer d.drop()
 	switch d.opcode {
 	default:
 		panic(phasePanicMsg)
@@ -443,6 +444,7 @@ type unquotedValue struct{}
 // If it finds anything other than a quoted string literal or null,
 // valueQuoted returns unquotedValue{}.
 func (d *decodeState) valueQuoted() (interface{}, error) {
+	defer d.drop()
 	switch d.opcode {
 	default:
 		panic(phasePanicMsg)
@@ -549,6 +551,7 @@ func indirect(v reflect.Value, decodingNull bool) (Unmarshaler, encoding.TextUnm
 // array consumes an array from d.reader[d.off-1:], decoding into v.
 // The first byte of the array ('[') has been read already.
 func (d *decodeState) array(v reflect.Value) error {
+	defer d.drop()
 	// Check for unmarshaler.
 	u, ut, pv := indirect(v, false)
 	if u != nil {
@@ -662,6 +665,7 @@ var textUnmarshalerType = reflect.TypeOf((*encoding.TextUnmarshaler)(nil)).Elem(
 // object consumes an object from d.reader[d.off-1:], decoding into v.
 // The first byte ('{') of the object has been read already.
 func (d *decodeState) object(v reflect.Value) error {
+	defer d.drop()
 	// Check for unmarshaler.
 	u, ut, pv := indirect(v, false)
 	if u != nil {
@@ -1110,6 +1114,7 @@ func (d *decodeState) literalStore(item []byte, v reflect.Value, fromQuoted bool
 
 // valueInterface is like value but returns interface{}
 func (d *decodeState) valueInterface() (val interface{}, err error) {
+	defer d.drop()
 	switch d.opcode {
 	default:
 		panic(phasePanicMsg)
@@ -1137,6 +1142,7 @@ func (d *decodeState) valueInterface() (val interface{}, err error) {
 
 // arrayInterface is like array but returns []interface{}.
 func (d *decodeState) arrayInterface() ([]interface{}, error) {
+	defer d.drop()
 	var v = make([]interface{}, 0)
 	for {
 		// Look ahead for ] - can only happen on first iteration.
@@ -1171,6 +1177,7 @@ func (d *decodeState) arrayInterface() ([]interface{}, error) {
 
 // objectInterface is like object but returns map[string]interface{}.
 func (d *decodeState) objectInterface() (map[string]interface{}, error) {
+	defer d.drop()
 	m := make(map[string]interface{})
 	for {
 		// Read opening " of string key or closing }.
@@ -1236,6 +1243,7 @@ func (d *decodeState) objectInterface() (map[string]interface{}, error) {
 // it reads the following byte ahead. The first byte of the literal has been
 // read already (that's how the caller knows it's a literal).
 func (d *decodeState) literalInterface() (interface{}, error) {
+	defer d.drop()
 	// All bytes inside literal return scanContinue op code.
 	start := d.readIndex()
 	if err := d.rescanLiteral(); err != nil {
