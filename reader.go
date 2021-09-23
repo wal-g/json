@@ -5,9 +5,14 @@ import (
 	"strings"
 )
 
+const (
+	readBufSize = 1 << 10
+	closeBufSize = 1 << 10
+)
+
 type streamReader struct {
 	buf      strings.Builder // TODO: decide on best DS
-	src      io.Reader
+	readBuf  readBuffer
 	dropped  int
 	finished bool
 	scanner  *scanner
@@ -16,7 +21,7 @@ type streamReader struct {
 func newStreamReader(stream io.Reader) *streamReader {
 	return &streamReader{
 		buf:     strings.Builder{},
-		src:     stream,
+		readBuf: newReadBuffer(stream),
 		scanner: newScanner(),
 	}
 }
@@ -30,8 +35,8 @@ func (s *streamReader) Load(i int) error {
 		return nil
 	}
 	neededLen := i - s.Len() + 1
-	buf := make([]byte, neededLen)
-	n, err := s.src.Read(buf)
+	buf, err := s.readBuf.Get(neededLen)
+	n := len(buf)
 	for j := 0; j < n; j++ {
 		if opcode := s.scanner.step(s.scanner, buf[j]); opcode == scanError {
 			return s.scanner.err
@@ -63,20 +68,64 @@ func (s *streamReader) Drop() {
 }
 
 func (s *streamReader) Close() error {
-	const closeBufSize = 2 << 10
-	buf := make([]byte, closeBufSize)
-	n, err := s.src.Read(buf)
+	buf, err := s.readBuf.Get(closeBufSize)
 	for err == nil {
-		for i := 0; i < n; i++ {
+		for i := 0; i < len(buf); i++ {
 			if opCode := s.scanner.step(s.scanner, buf[i]); opCode == scanError {
 				return s.scanner.err
 			}
 		}
-		n, err = s.src.Read(buf)
+		buf, err = s.readBuf.Get(closeBufSize)
 	}
 	if opCode := s.scanner.eof(); opCode == scanError {
 		return s.scanner.err
 	} else {
 		return nil
 	}
+}
+
+type readBuffer struct {
+	buf   []byte
+	index int
+	len   int
+	src   io.Reader
+}
+
+func newReadBuffer(stream io.Reader) readBuffer {
+	return readBuffer{
+		buf: make([]byte, readBufSize),
+		src: stream,
+	}
+}
+
+func (r *readBuffer) Get(n int) ([]byte, error) {
+	if r.len - r.index >= n {
+		res := r.buf[r.index : r.index+n]
+		r.index += n
+		return res, nil
+	}
+	got := make([]byte, r.len - r.index)
+	copy(got, r.buf[r.index:r.len])
+	r.index = r.len
+	n -= len(got)
+	if err := r.load(); err == io.EOF && len(got) > 0 {
+		return got, nil
+	} else if err != nil {
+		return got, err
+	}
+	if r.len - r.index >= n {
+		res := append(got, r.buf[r.index:r.index + n]...)
+		r.index += n
+		return res, nil
+	}
+	res := append(got, r.buf[r.index:r.len]...)
+	r.index = r.len
+	return res, nil
+}
+
+func (r *readBuffer) load() error {
+	n, err := r.src.Read(r.buf)
+	r.len = n
+	r.index = 0
+	return err
 }
