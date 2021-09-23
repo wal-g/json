@@ -989,19 +989,11 @@ var unmarshalTests = []unmarshalTest{
 func TestMarshal(t *testing.T) {
 	buf := strings.Builder{}
 	require.NoError(t, Marshal(allValue, &buf))
-	if buf.String() != allValueCompact {
-		t.Errorf("Marshal allValueCompact")
-		diff(t, []byte(buf.String()), []byte(allValueCompact))
-		return
-	}
+	require.Equal(t, buf.String(), allValueCompact)
 
 	buf.Reset()
 	require.NoError(t, Marshal(pallValue, &buf))
-	if buf.String() != pallValueCompact {
-		t.Errorf("Marshal pallValueCompact")
-		diff(t, []byte(buf.String()), []byte(pallValueCompact))
-		return
-	}
+	assert.Equal(t, buf.String(), pallValueCompact)
 }
 
 var badUTF8 = []struct {
@@ -1166,17 +1158,10 @@ func TestUnmarshal(t *testing.T) {
 func TestUnmarshalMarshal(t *testing.T) {
 	initBig()
 	var v interface{}
-	if err := Unmarshal(bytes.NewReader(jsonBig), &v); err != nil {
-		t.Fatalf("Unmarshal: %v", err)
-	}
+	require.NoError(t, Unmarshal(bytes.NewReader(jsonBig), &v))
 	buf := strings.Builder{}
 	require.NoError(t, Marshal(v, &buf))
-	b := []byte(buf.String())
-	if !bytes.Equal(jsonBig, b) {
-		t.Errorf("Marshal jsonBig")
-		diff(t, b, jsonBig)
-		return
-	}
+	assert.Equal(t, jsonBig, []byte(buf.String()))
 }
 
 var numberTests = []struct {
@@ -1195,9 +1180,7 @@ var numberTests = []struct {
 func TestNumberAccessors(t *testing.T) {
 	for _, tt := range numberTests {
 		n := Number(tt.in)
-		if s := n.String(); s != tt.in {
-			t.Errorf("Number(%q).String() is %q", tt.in, s)
-		}
+		assert.Equal(t, tt.in, n.String())
 		if i, err := n.Int64(); err == nil && tt.intErr == "" && i != tt.i {
 			t.Errorf("Number(%q).Int64() is %d", tt.in, i)
 		} else if (err == nil && tt.intErr != "") || (err != nil && err.Error() != tt.intErr) {
@@ -1219,13 +1202,8 @@ func TestLargeByteSlice(t *testing.T) {
 	buf := strings.Builder{}
 	require.NoError(t, Marshal(s0, &buf))
 	var s1 []byte
-	if err := Unmarshal(strings.NewReader(buf.String()), &s1); err != nil {
-		t.Fatalf("Unmarshal: %v", err)
-	}
-	if !bytes.Equal(s0, s1) {
-		t.Errorf("Marshal large byte slice")
-		diff(t, s0, s1)
-	}
+	require.NoError(t, Unmarshal(strings.NewReader(buf.String()), &s1))
+	assert.Equal(t, s0, s1)
 }
 
 type Xint struct {
@@ -1235,23 +1213,15 @@ type Xint struct {
 func TestUnmarshalInterface(t *testing.T) {
 	var xint Xint
 	var i interface{} = &xint
-	if err := Unmarshal(strings.NewReader(`{"X":1}`), &i); err != nil {
-		t.Fatalf("Unmarshal: %v", err)
-	}
-	if xint.X != 1 {
-		t.Fatalf("Did not write to xint")
-	}
+	require.NoError(t, Unmarshal(strings.NewReader(`{"X":1}`), &i))
+	assert.Equal(t, 1, xint.X)
 }
 
 func TestUnmarshalPtrPtr(t *testing.T) {
 	var xint Xint
 	pxint := &xint
-	if err := Unmarshal(strings.NewReader(`{"X":1}`), &pxint); err != nil {
-		t.Fatalf("Unmarshal: %v", err)
-	}
-	if xint.X != 1 {
-		t.Fatalf("Did not write to xint")
-	}
+	require.NoError(t, Unmarshal(strings.NewReader(`{"X":1}`), &pxint))
+	assert.Equal(t, 1, xint.X)
 }
 
 func TestEscape(t *testing.T) {
@@ -1259,10 +1229,7 @@ func TestEscape(t *testing.T) {
 	const expected = `"\"foobar\"\u003chtml\u003e [\u2028 \u2029]"`
 	buf := strings.Builder{}
 	require.NoError(t, Marshal(input, &buf))
-	b := []byte(buf.String())
-	if s := string(b); s != expected {
-		t.Errorf("Encoding of [%s]:\n got [%s]\nwant [%s]", input, s, expected)
-	}
+	assert.Equal(t, expected, buf.String())
 }
 
 // WrongString is a struct that's misusing the ,string modifier.
@@ -1291,9 +1258,7 @@ func TestErrorMessageFromMisusedString(t *testing.T) {
 		var s WrongString
 		err := NewDecoder(r).Decode(&s)
 		got := fmt.Sprintf("%v", err)
-		if got != tt.err {
-			t.Errorf("%d. got err = %q, want %q", n, got, tt.err)
-		}
+		assert.Equal(t, tt.err, got, "test", n)
 	}
 }
 
@@ -1640,12 +1605,8 @@ func TestRefUnmarshal(t *testing.T) {
 	*want.R3 = 13
 
 	var got S
-	if err := Unmarshal(strings.NewReader(`{"R0":"ref","R1":"ref","R2":"ref","R3":"ref"}`), &got); err != nil {
-		t.Fatalf("Unmarshal: %v", err)
-	}
-	if !reflect.DeepEqual(got, want) {
-		t.Errorf("got %+v, want %+v", got, want)
-	}
+	require.NoError(t, Unmarshal(strings.NewReader(`{"R0":"ref","R1":"ref","R2":"ref","R3":"ref"}`), &got))
+	assert.Equal(t, want, got)
 }
 
 // Test that the empty string doesn't panic decoding when ,string is specified
@@ -1656,15 +1617,9 @@ func TestEmptyString(t *testing.T) {
 		Number2 int `json:",string"`
 	}
 	data := `{"Number1":"1", "Number2":""}`
-	dec := NewDecoder(strings.NewReader(data))
 	var t2 T2
-	err := dec.Decode(&t2)
-	if err == nil {
-		t.Fatal("Decode: did not return error")
-	}
-	if t2.Number1 != 1 {
-		t.Fatal("Decode: did not set Number1")
-	}
+	assert.Error(t, NewDecoder(strings.NewReader(data)).Decode(&t2))
+	assert.Equal(t, 1, t2.Number1)
 }
 
 // Test that a null for ,string is not replaced with the previous quoted string (issue 7046).
@@ -1679,13 +1634,9 @@ func TestNullString(t *testing.T) {
 	s.B = 1
 	s.C = new(int)
 	*s.C = 2
-	err := Unmarshal(strings.NewReader(`{"A": "1", "B": null, "C": null}`), &s)
-	if err != nil {
-		t.Fatalf("Unmarshal: %v", err)
-	}
-	if s.B != 1 || s.C != nil {
-		t.Fatalf("after Unmarshal, s.B=%d, s.C=%p, want 1, nil", s.B, s.C)
-	}
+	require.NoError(t, Unmarshal(strings.NewReader(`{"A": "1", "B": null, "C": null}`), &s))
+	assert.Equal(t, 1, s.B)
+	assert.Equal(t, (*int)(nil), s.C)
 }
 
 func intp(x int) *int {
@@ -1723,14 +1674,8 @@ var interfaceSetTests = []struct {
 func TestInterfaceSet(t *testing.T) {
 	for _, tt := range interfaceSetTests {
 		b := struct{ X interface{} }{tt.pre}
-		blob := `{"X":` + tt.json + `}`
-		if err := Unmarshal(strings.NewReader(blob), &b); err != nil {
-			t.Errorf("Unmarshal %#q: %v", blob, err)
-			continue
-		}
-		if !reflect.DeepEqual(b.X, tt.post) {
-			t.Errorf("Unmarshal %#q into %#v: X=%#v, want %#v", blob, tt.pre, b.X, tt.post)
-		}
+		require.NoError(t, Unmarshal(strings.NewReader(`{"X":`+tt.json+`}`), &b))
+		assert.Equal(t, tt.post, b.X)
 	}
 }
 
@@ -1842,56 +1787,27 @@ func TestUnmarshalNulls(t *testing.T) {
 
 	before := nulls.Time.String()
 
-	err := Unmarshal(bytes.NewReader(jsonData), &nulls)
-	if err != nil {
-		t.Errorf("Unmarshal of null values failed: %v", err)
-	}
+	require.NoError(t, Unmarshal(bytes.NewReader(jsonData), &nulls))
 	if !nulls.Bool || nulls.Int != 2 || nulls.Int8 != 3 || nulls.Int16 != 4 || nulls.Int32 != 5 || nulls.Int64 != 6 ||
 		nulls.Uint != 7 || nulls.Uint8 != 8 || nulls.Uint16 != 9 || nulls.Uint32 != 10 || nulls.Uint64 != 11 ||
 		nulls.Float32 != 12.1 || nulls.Float64 != 13.1 || nulls.String != "14" {
 		t.Errorf("Unmarshal of null values affected primitives")
 	}
 
-	if nulls.PBool != nil {
-		t.Errorf("Unmarshal of null did not clear nulls.PBool")
-	}
-	if nulls.Map != nil {
-		t.Errorf("Unmarshal of null did not clear nulls.Map")
-	}
-	if nulls.Slice != nil {
-		t.Errorf("Unmarshal of null did not clear nulls.Slice")
-	}
-	if nulls.Interface != nil {
-		t.Errorf("Unmarshal of null did not clear nulls.Interface")
-	}
-	if nulls.PRaw != nil {
-		t.Errorf("Unmarshal of null did not clear nulls.PRaw")
-	}
-	if nulls.PTime != nil {
-		t.Errorf("Unmarshal of null did not clear nulls.PTime")
-	}
-	if nulls.PBigInt != nil {
-		t.Errorf("Unmarshal of null did not clear nulls.PBigInt")
-	}
-	if nulls.PText != nil {
-		t.Errorf("Unmarshal of null did not clear nulls.PText")
-	}
-	if nulls.PBuffer != nil {
-		t.Errorf("Unmarshal of null did not clear nulls.PBuffer")
-	}
-	if nulls.PStruct != nil {
-		t.Errorf("Unmarshal of null did not clear nulls.PStruct")
-	}
+	assert.Equal(t, (*bool)(nil), nulls.PBool, "Unmarshal of null did not clear nulls.PBool")
+	assert.Equal(t, map[string]string(nil), nulls.Map, "Unmarshal of null did not clear nulls.Map")
+	assert.Equal(t, []string(nil), nulls.Slice, "Unmarshal of null did not clear nulls.Slice")
+	assert.Equal(t, interface{}(nil), nulls.Interface, "Unmarshal of null did not clear nulls.Interface")
+	assert.Equal(t, (*RawMessage)(nil), nulls.PRaw, "Unmarshal of null did not clear nulls.PRaw")
+	assert.Equal(t, (*time.Time)(nil), nulls.PTime, "Unmarshal of null did not clear nulls.PTime")
+	assert.Equal(t, (*big.Int)(nil), nulls.PBigInt, "Unmarshal of null did not clear nulls.PBigInt")
+	assert.Equal(t, (*MustNotUnmarshalText)(nil), nulls.PText, "Unmarshal of null did not clear nulls.PText")
+	assert.Equal(t, (*bytes.Buffer)(nil), nulls.PBuffer, "Unmarshal of null did not clear nulls.PBuffer")
+	assert.Equal(t, (*struct{})(nil), nulls.PStruct, "Unmarshal of null did not clear nulls.PStruct")
 
-	if string(nulls.Raw) != "null" {
-		t.Errorf("Unmarshal of RawMessage null did not record null: %v", string(nulls.Raw))
-	}
-	if nulls.Time.String() != before {
-		t.Errorf("Unmarshal of time.Time null set time to %v", nulls.Time.String())
-	}
-	if nulls.BigInt.String() != "123" {
-		t.Errorf("Unmarshal of big.Int null set int to %v", nulls.BigInt.String())
-	}
+	assert.Equal(t, "null", string(nulls.Raw), "Unmarshal of RawMessage null did not record null: ", string(nulls.Raw))
+	assert.Equal(t, before, nulls.Time.String(), "Unmarshal of time.Time null set time to: ", nulls.Time.String())
+	assert.Equal(t, "123", nulls.BigInt.String())
 }
 
 type MustNotUnmarshalJSON struct{}
@@ -2006,13 +1922,8 @@ func TestUnmarshalUnexported(t *testing.T) {
 	want := &unexportedFields{Name: "Bob"}
 
 	out := &unexportedFields{}
-	err := Unmarshal(strings.NewReader(`{"Name": "Bob", "m": {"x": 123}, "m2": {"y": 456}, "abcd": {"z": 789}, "s": [2, 3]}`), out)
-	if err != nil {
-		t.Errorf("got error %v, expected nil", err)
-	}
-	if !reflect.DeepEqual(out, want) {
-		t.Errorf("got %q, want %q", out, want)
-	}
+	require.NoError(t, Unmarshal(strings.NewReader(`{"Name": "Bob", "m": {"x": 123}, "m2": {"y": 456}, "abcd": {"z": 789}, "s": [2, 3]}`), out))
+	assert.Equal(t, want, out)
 }
 
 // Time3339 is a time.Time which encodes to and from JSON
@@ -2037,9 +1948,8 @@ func TestUnmarshalJSONLiteralError(t *testing.T) {
 	if err == nil {
 		t.Fatalf("expected error; got time %v", time.Time(t3))
 	}
-	if !strings.Contains(err.Error(), "range") {
-		t.Errorf("got err = %v; want out of range error", err)
-	}
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "range", "want out of range error")
 }
 
 // Test that extra object elements in an array do not result in a
@@ -2098,13 +2008,8 @@ func TestPrefilled(t *testing.T) {
 
 	for _, tt := range prefillTests {
 		ptrstr := fmt.Sprintf("%v", tt.ptr)
-		err := Unmarshal(strings.NewReader(tt.in), tt.ptr) // tt.ptr edited here
-		if err != nil {
-			t.Errorf("Unmarshal: %v", err)
-		}
-		if !reflect.DeepEqual(tt.ptr, tt.out) {
-			t.Errorf("Unmarshal(%#q, %s): have %v, want %v", tt.in, ptrstr, tt.ptr, tt.out)
-		}
+		require.NoError(t, Unmarshal(strings.NewReader(tt.in), tt.ptr)) // tt.ptr edited here
+		assert.Equal(t, tt.out, tt.ptr, "unmarshal", ptrstr)
 	}
 }
 
@@ -2120,13 +2025,8 @@ var invalidUnmarshalTests = []struct {
 func TestInvalidUnmarshal(t *testing.T) {
 	for _, tt := range invalidUnmarshalTests {
 		err := Unmarshal(strings.NewReader(`{"a":"1"}`), tt.v)
-		if err == nil {
-			t.Errorf("Unmarshal expecting error, got nil")
-			continue
-		}
-		if got := err.Error(); got != tt.want {
-			t.Errorf("Unmarshal = %q; want %q", got, tt.want)
-		}
+		require.Error(t, err)
+		assert.Equal(t, tt.want, err.Error())
 	}
 }
 
@@ -2143,13 +2043,8 @@ var invalidUnmarshalTextTests = []struct {
 func TestInvalidUnmarshalText(t *testing.T) {
 	for _, tt := range invalidUnmarshalTextTests {
 		err := Unmarshal(strings.NewReader(`123`), tt.v)
-		if err == nil {
-			t.Errorf("Unmarshal expecting error, got nil")
-			continue
-		}
-		if got := err.Error(); got != tt.want {
-			t.Errorf("Unmarshal = %q; want %q", got, tt.want)
-		}
+		assert.Error(t, err)
+		assert.Equal(t, tt.want, err.Error())
 	}
 }
 
@@ -2296,9 +2191,7 @@ func TestUnmarshalEmbeddedUnexported(t *testing.T) {
 		if !equalError(err, tt.err) {
 			t.Errorf("#%d: %v, want %v", i, err, tt.err)
 		}
-		if !reflect.DeepEqual(tt.ptr, tt.out) {
-			t.Errorf("#%d: mismatch\ngot:  %#+v\nwant: %#+v", i, tt.ptr, tt.out)
-		}
+		assert.Equal(t, tt.out, tt.ptr)
 	}
 }
 
@@ -2322,7 +2215,7 @@ func TestUnmarshalErrorAfterMultipleJSON(t *testing.T) {
 		in:  `falsetruenul#`,
 		err: &SyntaxError{"invalid character '#' in literal null (expecting 'l')", 13},
 	}}
-	for i, tt := range tests {
+	for _, tt := range tests {
 		dec := NewDecoder(strings.NewReader(tt.in))
 		var err error
 		for {
@@ -2331,9 +2224,7 @@ func TestUnmarshalErrorAfterMultipleJSON(t *testing.T) {
 				break
 			}
 		}
-		if !reflect.DeepEqual(err, tt.err) {
-			t.Errorf("#%d: got %#v, want %#v", i, err, tt.err)
-		}
+		assert.EqualValues(t, tt.err, err)
 	}
 }
 
@@ -2342,13 +2233,9 @@ type unmarshalPanic struct{}
 func (unmarshalPanic) UnmarshalJSON([]byte) error { panic(0xdead) }
 
 func TestUnmarshalPanic(t *testing.T) {
-	defer func() {
-		if got := recover(); !reflect.DeepEqual(got, 0xdead) {
-			t.Errorf("panic() = (%T)(%v), want 0xdead", got, got)
-		}
-	}()
-	Unmarshal(strings.NewReader("{}"), &unmarshalPanic{})
-	t.Fatalf("Unmarshal should have panicked")
+	assert.PanicsWithValue(t, 0xdead, func() {
+		_ = Unmarshal(strings.NewReader("{}"), &unmarshalPanic{})
+	})
 }
 
 // The decoder used to hang if decoding into an interface pointing to its own address.
@@ -2356,9 +2243,7 @@ func TestUnmarshalPanic(t *testing.T) {
 func TestUnmarshalRecursivePointer(t *testing.T) {
 	var v interface{}
 	v = &v
-	if err := Unmarshal(strings.NewReader(`{"a": "b"}`), v); err != nil {
-		t.Fatal(err)
-	}
+	assert.NoError(t, Unmarshal(strings.NewReader(`{"a": "b"}`), v))
 }
 
 type textUnmarshalerString string
@@ -2384,9 +2269,7 @@ func TestUnmarshalMapWithTextUnmarshalerStringKey(t *testing.T) {
 func TestUnmarshalRescanLiteralMangledUnquote(t *testing.T) {
 	// See golang.org/issues/38105.
 	var p map[textUnmarshalerString]string
-	if err := Unmarshal(strings.NewReader(`{"开源":"12345开源"}`), &p); err != nil {
-		t.Fatalf("Unmarshal unexpected error: %v", err)
-	}
+	require.NoError(t, Unmarshal(strings.NewReader(`{"开源":"12345开源"}`), &p))
 	if _, ok := p["开源"]; !ok {
 		t.Errorf(`Key "开源" does not exist in map: %v`, p)
 	}
@@ -2413,13 +2296,9 @@ func TestUnmarshalRescanLiteralMangledUnquote(t *testing.T) {
 	buf.Reset()
 	require.NoError(t, Marshal(input, &buf))
 	var got map[textUnmarshalerString]string
-	if err := Unmarshal(strings.NewReader(buf.String()), &got); err != nil {
-		t.Fatalf("Unmarshal unexpected error: %v", err)
-	}
+	require.NoError(t, Unmarshal(strings.NewReader(buf.String()), &got))
 	want := map[textUnmarshalerString]string{"foo": "", `"`: ""}
-	if !reflect.DeepEqual(want, got) {
-		t.Fatalf("Unexpected roundtrip result:\nwant: %q\ngot:  %q", want, got)
-	}
+	assert.Equal(t, want, got)
 }
 
 func TestUnmarshalMaxDepth(t *testing.T) {
@@ -2503,15 +2382,10 @@ func TestUnmarshalMaxDepth(t *testing.T) {
 			t.Run(target.name+"-"+tc.name, func(t *testing.T) {
 				err := Unmarshal(strings.NewReader(tc.data), target.newValue())
 				if !tc.errMaxDepth {
-					if err != nil {
-						t.Errorf("unexpected error: %v", err)
-					}
+					require.NoError(t, err)
 				} else {
-					if err == nil {
-						t.Errorf("expected error containing 'exceeded max depth', got none")
-					} else if !strings.Contains(err.Error(), "exceeded max depth") {
-						t.Errorf("expected error containing 'exceeded max depth', got: %v", err)
-					}
+					assert.Error(t, err)
+					assert.Contains(t, err.Error(), "exceeded max depth")
 				}
 			})
 		}
