@@ -11,7 +11,7 @@ const (
 )
 
 type streamReader struct {
-	buf      strings.Builder // TODO: decide on best DS
+	buf      strings.Builder
 	readBuf  buffer.Buffer
 	dropped  int
 	finished bool

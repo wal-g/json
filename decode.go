@@ -169,7 +169,6 @@ func (e *InvalidUnmarshalError) Error() string {
 }
 
 func (d *decodeState) unmarshal(v interface{}) error {
-	// TODO: drop buffer sometimes
 	rv := reflect.ValueOf(v)
 	if rv.Kind() != reflect.Ptr || rv.IsNil() {
 		return &InvalidUnmarshalError{reflect.TypeOf(v)}
