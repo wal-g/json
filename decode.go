@@ -185,7 +185,7 @@ func (d *decodeState) unmarshal(v interface{}) error {
 	if err != nil {
 		return d.addErrorContext(err)
 	}
-	if err = d.close(); err != nil {
+	if err = d.Close(); err != nil {
 		return err
 	}
 	return d.savedError
@@ -269,10 +269,10 @@ func (d *decodeState) skip() error {
 	s, data, i := &d.scan, d.streamReader, d.off
 	depth := len(s.parseState)
 	for {
-		if err := data.load(i); err != nil {
+		if err := data.Load(i); err != nil {
 			return err
 		}
-		op := s.step(s, data.get(i))
+		op := s.step(s, data.Get(i))
 		i++
 		if len(s.parseState) < depth {
 			d.off = i
@@ -284,8 +284,8 @@ func (d *decodeState) skip() error {
 
 // scanNext processes the byte at d.reader[d.off].
 func (d *decodeState) scanNext() error {
-	if err := d.load(d.off); err == nil {
-		d.opcode = d.scan.step(&d.scan, d.get(d.off))
+	if err := d.Load(d.off); err == nil {
+		d.opcode = d.scan.step(&d.scan, d.Get(d.off))
 		d.off++
 	} else if err == io.EOF {
 		d.opcode = d.scan.eof()
@@ -301,8 +301,8 @@ func (d *decodeState) scanNext() error {
 func (d *decodeState) scanWhile(op int) error {
 	s, i := &d.scan, d.off
 	var err error
-	for err = d.load(i); err == nil; err = d.load(i) {
-		newOp := s.step(s, d.get(i))
+	for err = d.Load(i); err == nil; err = d.Load(i) {
+		newOp := s.step(s, d.Get(i))
 		i++
 		if newOp != op {
 			d.opcode = newOp
@@ -331,10 +331,10 @@ func (d *decodeState) rescanLiteral() error {
 	i := d.off
 	var err error
 Switch:
-	switch d.get(i - 1) {
+	switch d.Get(i - 1) {
 	case '"': // string
-		for err = d.load(i); err == nil; err = d.load(i) {
-			switch d.get(i) {
+		for err = d.Load(i); err == nil; err = d.Load(i) {
+			switch d.Get(i) {
 			case '\\':
 				i++ // escaped char
 			case '"':
@@ -344,8 +344,8 @@ Switch:
 			i++
 		}
 	case '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '-': // number
-		for err = d.load(i); err == nil; err = d.load(i) {
-			switch d.get(i) {
+		for err = d.Load(i); err == nil; err = d.Load(i) {
+			switch d.Get(i) {
 			case '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
 				'.', 'e', 'E', '+', '-':
 			default:
@@ -355,26 +355,26 @@ Switch:
 		}
 	case 't': // true
 		i += len("rue")
-		if err = d.load(i); err != nil {
+		if err = d.Load(i); err != nil {
 			return err
 		}
 	case 'f': // false
 		i += len("alse")
-		if err = d.load(i); err != nil {
+		if err = d.Load(i); err != nil {
 			return err
 		}
 	case 'n': // null
 		i += len("ull")
-		if err = d.load(i); err != nil {
+		if err = d.Load(i); err != nil {
 			return err
 		}
 	}
 	if err != nil && err != io.EOF {
 		return err
 	}
-	err = d.load(i)
+	err = d.Load(i)
 	if err == nil {
-		d.opcode = stateEndValue(&d.scan, d.get(i))
+		d.opcode = stateEndValue(&d.scan, d.Get(i))
 	} else if err == io.EOF {
 		d.opcode = scanEnd
 	} else {
@@ -388,7 +388,7 @@ Switch:
 // reads the following byte ahead. If v is invalid, the value is discarded.
 // The first byte of the value has been read already.
 func (d *decodeState) value(v reflect.Value) error {
-	defer d.drop()
+	defer d.Drop()
 	switch d.opcode {
 	default:
 		panic(phasePanicMsg)
@@ -429,7 +429,7 @@ func (d *decodeState) value(v reflect.Value) error {
 		}
 
 		if v.IsValid() {
-			if err := d.literalStore(d.getRange(start, d.readIndex()), v, false); err != nil {
+			if err := d.literalStore(d.Range(start, d.readIndex()), v, false); err != nil {
 				return err
 			}
 		}
@@ -444,7 +444,7 @@ type unquotedValue struct{}
 // If it finds anything other than a quoted string literal or null,
 // valueQuoted returns unquotedValue{}.
 func (d *decodeState) valueQuoted() (interface{}, error) {
-	defer d.drop()
+	defer d.Drop()
 	switch d.opcode {
 	default:
 		panic(phasePanicMsg)
@@ -551,7 +551,7 @@ func indirect(v reflect.Value, decodingNull bool) (Unmarshaler, encoding.TextUnm
 // array consumes an array from d.reader[d.off-1:], decoding into v.
 // The first byte of the array ('[') has been read already.
 func (d *decodeState) array(v reflect.Value) error {
-	defer d.drop()
+	defer d.Drop()
 	// Check for unmarshaler.
 	u, ut, pv := indirect(v, false)
 	if u != nil {
@@ -559,7 +559,7 @@ func (d *decodeState) array(v reflect.Value) error {
 		if err := d.skip(); err != nil {
 			return err
 		}
-		return u.UnmarshalJSON(d.getRange(start, d.off))
+		return u.UnmarshalJSON(d.Range(start, d.off))
 	}
 	if ut != nil {
 		d.saveError(&UnmarshalTypeError{Value: "array", Type: v.Type(), Offset: int64(d.off)})
@@ -665,7 +665,7 @@ var textUnmarshalerType = reflect.TypeOf((*encoding.TextUnmarshaler)(nil)).Elem(
 // object consumes an object from d.reader[d.off-1:], decoding into v.
 // The first byte ('{') of the object has been read already.
 func (d *decodeState) object(v reflect.Value) error {
-	defer d.drop()
+	defer d.Drop()
 	// Check for unmarshaler.
 	u, ut, pv := indirect(v, false)
 	if u != nil {
@@ -673,7 +673,7 @@ func (d *decodeState) object(v reflect.Value) error {
 		if err := d.skip(); err != nil {
 			return err
 		}
-		return u.UnmarshalJSON(d.getRange(start, d.off))
+		return u.UnmarshalJSON(d.Range(start, d.off))
 	}
 	if ut != nil {
 		d.saveError(&UnmarshalTypeError{Value: "object", Type: v.Type(), Offset: int64(d.off)})
@@ -750,7 +750,7 @@ func (d *decodeState) object(v reflect.Value) error {
 		if err := d.rescanLiteral(); err != nil {
 			return err
 		}
-		item := d.getRange(start, d.readIndex())
+		item := d.Range(start, d.readIndex())
 		key, ok := unquoteBytes(item)
 		if !ok {
 			panic(phasePanicMsg)
@@ -1114,7 +1114,7 @@ func (d *decodeState) literalStore(item []byte, v reflect.Value, fromQuoted bool
 
 // valueInterface is like value but returns interface{}
 func (d *decodeState) valueInterface() (val interface{}, err error) {
-	defer d.drop()
+	defer d.Drop()
 	switch d.opcode {
 	default:
 		panic(phasePanicMsg)
@@ -1142,7 +1142,7 @@ func (d *decodeState) valueInterface() (val interface{}, err error) {
 
 // arrayInterface is like array but returns []interface{}.
 func (d *decodeState) arrayInterface() ([]interface{}, error) {
-	defer d.drop()
+	defer d.Drop()
 	var v = make([]interface{}, 0)
 	for {
 		// Look ahead for ] - can only happen on first iteration.
@@ -1177,7 +1177,7 @@ func (d *decodeState) arrayInterface() ([]interface{}, error) {
 
 // objectInterface is like object but returns map[string]interface{}.
 func (d *decodeState) objectInterface() (map[string]interface{}, error) {
-	defer d.drop()
+	defer d.Drop()
 	m := make(map[string]interface{})
 	for {
 		// Read opening " of string key or closing }.
@@ -1197,7 +1197,7 @@ func (d *decodeState) objectInterface() (map[string]interface{}, error) {
 		if err := d.rescanLiteral(); err != nil {
 			return nil, err
 		}
-		item := d.getRange(start, d.readIndex())
+		item := d.Range(start, d.readIndex())
 		key, ok := unquote(item)
 		if !ok {
 			panic(phasePanicMsg)
@@ -1243,14 +1243,14 @@ func (d *decodeState) objectInterface() (map[string]interface{}, error) {
 // it reads the following byte ahead. The first byte of the literal has been
 // read already (that's how the caller knows it's a literal).
 func (d *decodeState) literalInterface() (interface{}, error) {
-	defer d.drop()
+	defer d.Drop()
 	// All bytes inside literal return scanContinue op code.
 	start := d.readIndex()
 	if err := d.rescanLiteral(); err != nil {
 		return nil, err
 	}
 
-	item := d.getRange(start, d.readIndex())
+	item := d.Range(start, d.readIndex())
 
 	switch c := item[0]; c {
 	case 'n': // null
