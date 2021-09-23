@@ -13,11 +13,19 @@ type streamReader struct {
 	scanner  *scanner
 }
 
+func newStreamReader(stream io.Reader) *streamReader {
+	return &streamReader{
+		buf:     strings.Builder{},
+		src:     stream,
+		scanner: newScanner(),
+	}
+}
+
 func (s *streamReader) Len() int {
 	return len(s.buf.String()) + s.dropped
 }
 
-func (s *streamReader) load(i int) error {
+func (s *streamReader) Load(i int) error {
 	if i < s.Len() {
 		return nil
 	}
@@ -41,20 +49,20 @@ func (s *streamReader) load(i int) error {
 	return err
 }
 
-func (s *streamReader) get(i int) byte {
+func (s *streamReader) Get(i int) byte {
 	return s.buf.String()[i-s.dropped]
 }
 
-func (s *streamReader) getRange(l, r int) []byte {
+func (s *streamReader) Range(l, r int) []byte {
 	return []byte(s.buf.String()[l-s.dropped : r-s.dropped])
 }
 
-func (s *streamReader) drop() {
+func (s *streamReader) Drop() {
 	s.dropped += s.buf.Len()
 	s.buf.Reset()
 }
 
-func (s *streamReader) close() error {
+func (s *streamReader) Close() error {
 	const closeBufSize = 2 << 10
 	buf := make([]byte, closeBufSize)
 	n, err := s.src.Read(buf)
@@ -70,13 +78,5 @@ func (s *streamReader) close() error {
 		return s.scanner.err
 	} else {
 		return nil
-	}
-}
-
-func newStreamReader(stream io.Reader) *streamReader {
-	return &streamReader{
-		buf:     strings.Builder{},
-		src:     stream,
-		scanner: newScanner(),
 	}
 }
