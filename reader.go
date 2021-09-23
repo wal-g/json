@@ -1,18 +1,18 @@
 package json
 
 import (
+	"github.com/EinKrebs/json/internal/buffer"
 	"io"
 	"strings"
 )
 
 const (
-	readBufSize = 1 << 10
 	closeBufSize = 1 << 10
 )
 
 type streamReader struct {
 	buf      strings.Builder // TODO: decide on best DS
-	readBuf  readBuffer
+	readBuf  buffer.Buffer
 	dropped  int
 	finished bool
 	scanner  *scanner
@@ -21,7 +21,7 @@ type streamReader struct {
 func newStreamReader(stream io.Reader) *streamReader {
 	return &streamReader{
 		buf:     strings.Builder{},
-		readBuf: newReadBuffer(stream),
+		readBuf: buffer.New(stream),
 		scanner: newScanner(),
 	}
 }
@@ -82,50 +82,4 @@ func (s *streamReader) Close() error {
 	} else {
 		return nil
 	}
-}
-
-type readBuffer struct {
-	buf   []byte
-	index int
-	len   int
-	src   io.Reader
-}
-
-func newReadBuffer(stream io.Reader) readBuffer {
-	return readBuffer{
-		buf: make([]byte, readBufSize),
-		src: stream,
-	}
-}
-
-func (r *readBuffer) Get(n int) ([]byte, error) {
-	if r.len - r.index >= n {
-		res := r.buf[r.index : r.index+n]
-		r.index += n
-		return res, nil
-	}
-	got := make([]byte, r.len - r.index)
-	copy(got, r.buf[r.index:r.len])
-	r.index = r.len
-	n -= len(got)
-	if err := r.load(); err == io.EOF && len(got) > 0 {
-		return got, nil
-	} else if err != nil {
-		return got, err
-	}
-	if r.len - r.index >= n {
-		res := append(got, r.buf[r.index:r.index + n]...)
-		r.index += n
-		return res, nil
-	}
-	res := append(got, r.buf[r.index:r.len]...)
-	r.index = r.len
-	return res, nil
-}
-
-func (r *readBuffer) load() error {
-	n, err := r.src.Read(r.buf)
-	r.len = n
-	r.index = 0
-	return err
 }
