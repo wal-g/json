@@ -19,12 +19,12 @@ func New(stream io.Reader) Buffer {
 }
 
 func (r *Buffer) Get(n int) ([]byte, error) {
-	if r.len - r.index >= n {
+	if r.len-r.index >= n {
 		res := r.buf[r.index : r.index+n]
 		r.index += n
 		return res, nil
 	}
-	got := make([]byte, r.len - r.index)
+	got := make([]byte, r.len-r.index)
 	copy(got, r.buf[r.index:r.len])
 	r.index = r.len
 	n -= len(got)
@@ -33,8 +33,8 @@ func (r *Buffer) Get(n int) ([]byte, error) {
 	} else if err != nil {
 		return got, err
 	}
-	if r.len - r.index >= n {
-		res := append(got, r.buf[r.index:r.index + n]...)
+	if r.len-r.index >= n {
+		res := append(got, r.buf[r.index:r.index+n]...)
 		r.index += n
 		return res, nil
 	}
