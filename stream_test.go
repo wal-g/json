@@ -48,7 +48,7 @@ func TestEncoder(t *testing.T) {
 		enc.SetIndent(">", ".")
 		enc.SetIndent("", "")
 		for _, v := range streamTest[0:i] {
-			assert.NoError(t, enc.Encode(v))
+			require.NoError(t, enc.Encode(v))
 		}
 		assert.Equal(t, nlines(streamEncoded, i), buf.String())
 	}
@@ -141,11 +141,11 @@ func TestEncoderSetEscapeHTML(t *testing.T) {
 	} {
 		var buf bytes.Buffer
 		enc := NewEncoder(&buf)
-		require.NoError(t, enc.Encode(tt.v))
+		assert.NoError(t, enc.Encode(tt.v))
 		assert.Equal(t, tt.wantEscape, strings.TrimSpace(buf.String()))
 		buf.Reset()
 		enc.SetEscapeHTML(false)
-		require.NoError(t, enc.Encode(tt.v))
+		assert.NoError(t, enc.Encode(tt.v))
 		assert.Equal(t, tt.want, strings.TrimSpace(buf.String()))
 	}
 }
@@ -166,7 +166,7 @@ func TestDecoder(t *testing.T) {
 		out := make([]interface{}, i)
 		dec := NewDecoder(&buf)
 		for j := range out {
-			assert.NoError(t, dec.Decode(&out[j]))
+			require.NoError(t, dec.Decode(&out[j]))
 		}
 		if !reflect.DeepEqual(out, streamTest[0:i]) {
 			t.Errorf("decoding %d items: mismatch", i)
@@ -219,7 +219,7 @@ func TestRawMessage(t *testing.T) {
 	const raw = `["\u0056",null]`
 	const msg = `{"X":0.1,"Id":["\u0056",null],"Y":0.2}`
 	require.NoError(t, Unmarshal(strings.NewReader(msg), &data))
-	assert.Equal(t, raw, string(data.Id))
+	require.Equal(t, raw, string(data.Id))
 
 	buf := strings.Builder{}
 	require.NoError(t, Marshal(&data, &buf))
@@ -235,8 +235,8 @@ func TestNullRawMessage(t *testing.T) {
 	}
 	const msg = `{"X":0.1,"Id":null,"IdPtr":null,"Y":0.2}`
 	require.NoError(t, Unmarshal(strings.NewReader(msg), &data))
-	assert.Equal(t, "null", string(data.Id))
-	assert.Equal(t, (*RawMessage)(nil), data.IdPtr)
+	require.Equal(t, "null", string(data.Id))
+	require.Equal(t, (*RawMessage)(nil), data.IdPtr)
 	buf := strings.Builder{}
 	require.NoError(t, Marshal(&data, &buf))
 	assert.Equal(t, msg, buf.String())
@@ -398,7 +398,7 @@ func TestHTTPDecoding(t *testing.T) {
 	}))
 	defer ts.Close()
 	res, err := http.Get(ts.URL)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	defer res.Body.Close()
 
 	foo := struct {

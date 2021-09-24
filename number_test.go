@@ -7,7 +7,6 @@ package json
 import (
 	"fmt"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"regexp"
 	"strings"
 	"testing"
@@ -67,10 +66,10 @@ func TestNumberIsValid(t *testing.T) {
 	}
 
 	for _, test := range validTests {
-		require.True(t, isValidNumber(test))
+		assert.True(t, isValidNumber(test))
 
 		var f float64
-		require.NoError(t, Unmarshal(strings.NewReader(test), &f))
+		assert.NoError(t, Unmarshal(strings.NewReader(test), &f))
 
 		assert.True(t, jsonNumberRegexp.MatchString(test), "%s should be valid but regexp does not match", test)
 	}
@@ -99,10 +98,10 @@ func TestNumberIsValid(t *testing.T) {
 		"1.e1",
 	} {
 		t.Run(fmt.Sprintf("Test %s is invalid", test), func(t *testing.T) {
-			require.False(t, isValidNumber(test))
+			assert.False(t, isValidNumber(test))
 
 			var f float64
-			require.Error(t, Unmarshal(strings.NewReader(test), &f))
+			assert.Error(t, Unmarshal(strings.NewReader(test), &f))
 
 			assert.False(t, jsonNumberRegexp.MatchString(test), "%s should be invalid but matches regexp", test)
 		})

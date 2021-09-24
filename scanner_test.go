@@ -69,11 +69,11 @@ func TestCompact(t *testing.T) {
 	var buf bytes.Buffer
 	for _, tt := range examples {
 		buf.Reset()
-		require.NoError(t, Compact(&buf, []byte(tt.compact)))
+		assert.NoError(t, Compact(&buf, []byte(tt.compact)))
 		assert.Equal(t, tt.compact, buf.String())
 
 		buf.Reset()
-		require.NoError(t, Compact(&buf, []byte(tt.indent)))
+		assert.NoError(t, Compact(&buf, []byte(tt.indent)))
 		assert.Equal(t, tt.compact, buf.String())
 	}
 }
@@ -89,7 +89,7 @@ func TestCompactSeparators(t *testing.T) {
 	}
 	for _, tt := range tests {
 		var buf bytes.Buffer
-		require.NoError(t, Compact(&buf, []byte(tt.in)))
+		assert.NoError(t, Compact(&buf, []byte(tt.in)))
 		assert.Equal(t, tt.compact, buf.String())
 	}
 }
@@ -98,11 +98,11 @@ func TestIndent(t *testing.T) {
 	var buf bytes.Buffer
 	for _, tt := range examples {
 		buf.Reset()
-		require.NoError(t, Indent(&buf, []byte(tt.indent), "", "\t"))
+		assert.NoError(t, Indent(&buf, []byte(tt.indent), "", "\t"))
 		assert.Equal(t, tt.indent, buf.String())
 
 		buf.Reset()
-		require.NoError(t, Indent(&buf, []byte(tt.compact), "", "\t"))
+		assert.NoError(t, Indent(&buf, []byte(tt.compact), "", "\t"))
 		assert.Equal(t, tt.indent, buf.String())
 	}
 }
@@ -125,7 +125,7 @@ func TestIndentBig(t *testing.T) {
 
 	// jsonBig is compact (no unnecessary spaces);
 	// indenting should make it bigger
-	assert.Greater(t, len(b), len(jsonBig))
+	require.Greater(t, len(b), len(jsonBig))
 
 	// should be idempotent
 	var buf1 bytes.Buffer
@@ -161,26 +161,6 @@ func TestIndentErrors(t *testing.T) {
 			}
 		}
 	}
-}
-
-func diff(t *testing.T, a, b []byte) {
-	for i := 0; ; i++ {
-		if i >= len(a) || i >= len(b) || a[i] != b[i] {
-			j := i - 10
-			if j < 0 {
-				j = 0
-			}
-			t.Errorf("diverge at %d: «%s» vs «%s»", i, trim(a[j:]), trim(b[j:]))
-			return
-		}
-	}
-}
-
-func trim(b []byte) []byte {
-	if len(b) > 20 {
-		return b[0:20]
-	}
-	return b
 }
 
 // Generate a random JSON object.
