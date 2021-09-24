@@ -218,6 +218,9 @@ func (enc *Encoder) Encode(v interface{}) error {
 	if _, err = e.Write([]byte{'\n'}); err != nil {
 		return err
 	}
+	if err = e.Flush(); err != nil {
+		return err
+	}
 
 	b := bytesBuf.Bytes()
 	if enc.indentPrefix != "" || enc.indentValue != "" {

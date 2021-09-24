@@ -1,24 +1,24 @@
-package buffer
+package readbuffer
 
 import "io"
 
 const readBufSize = 1 << 10
 
-type Buffer struct {
+type ReadBuffer struct {
 	buf   []byte
 	index int
 	len   int
 	src   io.Reader
 }
 
-func New(stream io.Reader) Buffer {
-	return Buffer{
+func New(stream io.Reader) ReadBuffer {
+	return ReadBuffer{
 		buf: make([]byte, readBufSize),
 		src: stream,
 	}
 }
 
-func (r *Buffer) Get(n int) ([]byte, error) {
+func (r *ReadBuffer) Get(n int) ([]byte, error) {
 	if r.len-r.index >= n {
 		res := r.buf[r.index : r.index+n]
 		r.index += n
@@ -43,7 +43,7 @@ func (r *Buffer) Get(n int) ([]byte, error) {
 	return res, nil
 }
 
-func (r *Buffer) load() error {
+func (r *ReadBuffer) load() error {
 	n, err := r.src.Read(r.buf)
 	r.len = n
 	r.index = 0

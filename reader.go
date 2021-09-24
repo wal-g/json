@@ -1,7 +1,7 @@
 package json
 
 import (
-	"github.com/EinKrebs/json/internal/buffer"
+	"github.com/EinKrebs/json/internal/readbuffer"
 	"io"
 	"strings"
 )
@@ -12,7 +12,7 @@ const (
 
 type streamReader struct {
 	buf      strings.Builder
-	readBuf  buffer.Buffer
+	readBuf  readbuffer.ReadBuffer
 	dropped  int
 	finished bool
 	scanner  *scanner
@@ -21,7 +21,7 @@ type streamReader struct {
 func newStreamReader(stream io.Reader) *streamReader {
 	return &streamReader{
 		buf:     strings.Builder{},
-		readBuf: buffer.New(stream),
+		readBuf: readbuffer.New(stream),
 		scanner: newScanner(),
 	}
 }
