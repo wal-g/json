@@ -42,7 +42,6 @@ var foldTests = []struct {
 
 func TestFold(t *testing.T) {
 	for i, tt := range foldTests {
-		assert.New(t)
 		assert.Equal(t, tt.want, tt.fn([]byte(tt.s), []byte(tt.t)), "%d. %q, %q", i, tt.s, tt.t)
 		assert.Equal(t, tt.want, strings.EqualFold(tt.s, tt.t), "strings.EqualFold doesn't agree with case %d", i)
 	}
@@ -93,7 +92,6 @@ func TestFoldAgainstUnicode(t *testing.T) {
 				continue
 			}
 			for _, r2 := range runes {
-				assert.New(t)
 				buf1 := append(buf1[:0], 'x')
 				buf2 := append(buf2[:0], 'x')
 				buf1 = buf1[:1+utf8.EncodeRune(buf1[1:bufSize], r)]

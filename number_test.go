@@ -67,8 +67,6 @@ func TestNumberIsValid(t *testing.T) {
 	}
 
 	for _, test := range validTests {
-		require.New(t)
-		assert.New(t)
 		require.True(t, isValidNumber(test))
 
 		var f float64
@@ -101,8 +99,6 @@ func TestNumberIsValid(t *testing.T) {
 		"1.e1",
 	} {
 		t.Run(fmt.Sprintf("Test %s is invalid", test), func(t *testing.T) {
-			require.New(t)
-			assert.New(t)
 			require.False(t, isValidNumber(test))
 
 			var f float64
