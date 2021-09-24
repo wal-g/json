@@ -9,7 +9,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"io"
-	"log"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -48,16 +47,10 @@ func TestEncoder(t *testing.T) {
 		// Check that enc.SetIndent("", "") turns off indentation.
 		enc.SetIndent(">", ".")
 		enc.SetIndent("", "")
-		for j, v := range streamTest[0:i] {
-			if err := enc.Encode(v); err != nil {
-				t.Fatalf("encode #%d: %v", j, err)
-			}
+		for _, v := range streamTest[0:i] {
+			require.NoError(t, enc.Encode(v))
 		}
-		if have, want := buf.String(), nlines(streamEncoded, i); have != want {
-			t.Errorf("encoding %d items: mismatch", i)
-			diff(t, []byte(have), []byte(want))
-			break
-		}
+		assert.Equal(t, nlines(streamEncoded, i), buf.String())
 	}
 }
 
@@ -83,12 +76,9 @@ func TestEncoderIndent(t *testing.T) {
 	enc := NewEncoder(&buf)
 	enc.SetIndent(">", ".")
 	for _, v := range streamTest {
-		enc.Encode(v)
+		_ = enc.Encode(v)
 	}
-	if have, want := buf.String(), streamEncodedIndent; have != want {
-		t.Error("indented encoding mismatch")
-		diff(t, []byte(have), []byte(want))
-	}
+	assert.Equal(t, streamEncodedIndent, buf.String())
 }
 
 type strMarshaler string
@@ -151,23 +141,12 @@ func TestEncoderSetEscapeHTML(t *testing.T) {
 	} {
 		var buf bytes.Buffer
 		enc := NewEncoder(&buf)
-		if err := enc.Encode(tt.v); err != nil {
-			t.Errorf("Encode(%s): %s", tt.name, err)
-			continue
-		}
-		if got := strings.TrimSpace(buf.String()); got != tt.wantEscape {
-			t.Errorf("Encode(%s) = %#q, want %#q", tt.name, got, tt.wantEscape)
-		}
+		assert.NoError(t, enc.Encode(tt.v))
+		assert.Equal(t, tt.wantEscape, strings.TrimSpace(buf.String()))
 		buf.Reset()
 		enc.SetEscapeHTML(false)
-		if err := enc.Encode(tt.v); err != nil {
-			t.Errorf("SetEscapeHTML(false) Encode(%s): %s", tt.name, err)
-			continue
-		}
-		if got := strings.TrimSpace(buf.String()); got != tt.want {
-			t.Errorf("SetEscapeHTML(false) Encode(%s) = %#q, want %#q",
-				tt.name, got, tt.want)
-		}
+		assert.NoError(t, enc.Encode(tt.v))
+		assert.Equal(t, tt.want, strings.TrimSpace(buf.String()))
 	}
 }
 
@@ -176,7 +155,7 @@ func TestDecoder(t *testing.T) {
 		// Use stream without newlines as input,
 		// just to stress the decoder even more.
 		// Our test input does not include back-to-back numbers.
-		// Otherwise stripping the newlines would
+		// Otherwise, stripping the newlines would
 		// merge two adjacent JSON values.
 		var buf bytes.Buffer
 		for _, c := range nlines(streamEncoded, i) {
@@ -187,9 +166,7 @@ func TestDecoder(t *testing.T) {
 		out := make([]interface{}, i)
 		dec := NewDecoder(&buf)
 		for j := range out {
-			if err := dec.Decode(&out[j]); err != nil {
-				t.Fatalf("decode #%d/%d: %v", j, i, err)
-			}
+			require.NoError(t, dec.Decode(&out[j]))
 		}
 		if !reflect.DeepEqual(out, streamTest[0:i]) {
 			t.Errorf("decoding %d items: mismatch", i)
@@ -213,16 +190,10 @@ func TestDecoderBuffered(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if m.Name != "Gopher" {
-		t.Errorf("Name = %q; want Gopher", m.Name)
-	}
+	assert.Equal(t, "Gopher", m.Name)
 	rest, err := io.ReadAll(d.Buffered())
-	if err != nil {
-		t.Fatal(err)
-	}
-	if g, w := string(rest), " extra "; g != w {
-		t.Errorf("Remaining = %q; want %q", g, w)
-	}
+	require.NoError(t, err)
+	assert.Equal(t, " extra ", string(rest))
 }
 
 func nlines(s string, n int) string {
@@ -247,13 +218,8 @@ func TestRawMessage(t *testing.T) {
 	}
 	const raw = `["\u0056",null]`
 	const msg = `{"X":0.1,"Id":["\u0056",null],"Y":0.2}`
-	err := Unmarshal(strings.NewReader(msg), &data)
-	if err != nil {
-		t.Fatalf("Unmarshal: %v", err)
-	}
-	if string([]byte(data.Id)) != raw {
-		t.Fatalf("Raw mismatch: have %#q want %#q", []byte(data.Id), raw)
-	}
+	require.NoError(t, Unmarshal(strings.NewReader(msg), &data))
+	require.Equal(t, raw, string(data.Id))
 
 	buf := strings.Builder{}
 	require.NoError(t, Marshal(&data, &buf))
@@ -268,16 +234,9 @@ func TestNullRawMessage(t *testing.T) {
 		Y     float32
 	}
 	const msg = `{"X":0.1,"Id":null,"IdPtr":null,"Y":0.2}`
-	err := Unmarshal(strings.NewReader(msg), &data)
-	if err != nil {
-		t.Fatalf("Unmarshal: %v", err)
-	}
-	if want, got := "null", string(data.Id); want != got {
-		t.Fatalf("Raw mismatch: have %q, want %q", got, want)
-	}
-	if data.IdPtr != nil {
-		t.Fatalf("Raw pointer mismatch: have non-nil, want nil")
-	}
+	require.NoError(t, Unmarshal(strings.NewReader(msg), &data))
+	require.Equal(t, "null", string(data.Id))
+	require.Equal(t, (*RawMessage)(nil), data.IdPtr)
 	buf := strings.Builder{}
 	require.NoError(t, Marshal(&data, &buf))
 	assert.Equal(t, msg, buf.String())
@@ -296,9 +255,7 @@ func TestBlocking(t *testing.T) {
 
 		// If Decode reads beyond what w.Write writes above,
 		// it will block, and the test will deadlock.
-		if err := NewDecoder(r).Decode(&val); err != nil {
-			t.Errorf("decoding %s: %v", enc, err)
-		}
+		assert.NoError(t, NewDecoder(r).Decode(&val))
 		r.Close()
 		w.Close()
 	}
@@ -312,9 +269,7 @@ func BenchmarkEncoderEncode(b *testing.B) {
 	v := &T{"foo", "bar"}
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			if err := NewEncoder(io.Discard).Encode(v); err != nil {
-				b.Fatal(err)
-			}
+			require.NoError(b, NewEncoder(io.Discard).Encode(v))
 		}
 	})
 }
@@ -443,9 +398,7 @@ func TestHTTPDecoding(t *testing.T) {
 	}))
 	defer ts.Close()
 	res, err := http.Get(ts.URL)
-	if err != nil {
-		log.Fatalf("GET failed: %v", err)
-	}
+	assert.NoError(t, err)
 	defer res.Body.Close()
 
 	foo := struct {
@@ -453,17 +406,9 @@ func TestHTTPDecoding(t *testing.T) {
 	}{}
 
 	d := NewDecoder(res.Body)
-	err = d.Decode(&foo)
-	if err != nil {
-		t.Fatalf("Decode: %v", err)
-	}
-	if foo.Foo != "bar" {
-		t.Errorf("decoded %q; want \"bar\"", foo.Foo)
-	}
+	require.NoError(t, d.Decode(&foo))
+	assert.Equal(t, "bar", foo.Foo)
 
 	// make sure we get the EOF the second time
-	err = d.Decode(&foo)
-	if err != io.EOF {
-		t.Errorf("err = %v; want io.EOF", err)
-	}
+	assert.ErrorIs(t, d.Decode(&foo), io.EOF)
 }

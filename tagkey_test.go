@@ -106,9 +106,9 @@ func TestStructTagObjectKey(t *testing.T) {
 		for i, v := range f.(map[string]interface{}) {
 			switch i {
 			case tt.key:
-				if s, ok := v.(string); !ok || s != tt.value {
-					t.Fatalf("Unexpected value: %#q, want %v", s, tt.value)
-				}
+				s, ok := v.(string)
+				require.True(t, ok)
+				require.Equal(t, tt.value, s)
 			default:
 				t.Fatalf("Unexpected key: %#q, from %#q", i, buf.String())
 			}

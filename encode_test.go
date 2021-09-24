@@ -934,7 +934,6 @@ func TestMarshalRawMessageValue(t *testing.T) {
 
 	buf := strings.Builder{}
 	for i, tt := range tests {
-		assert.New(t)
 		err := Marshal(tt.in, &buf)
 		if tt.ok {
 			assert.NoError(t, err)

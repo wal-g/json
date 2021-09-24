@@ -6,6 +6,7 @@ package json
 
 import (
 	"fmt"
+	"github.com/stretchr/testify/assert"
 	"regexp"
 	"strings"
 	"testing"
@@ -65,18 +66,12 @@ func TestNumberIsValid(t *testing.T) {
 	}
 
 	for _, test := range validTests {
-		if !isValidNumber(test) {
-			t.Errorf("%s should be valid", test)
-		}
+		assert.True(t, isValidNumber(test))
 
 		var f float64
-		if err := Unmarshal(strings.NewReader(test), &f); err != nil {
-			t.Errorf("%s should be valid but Unmarshal failed: %v", test, err)
-		}
+		assert.NoError(t, Unmarshal(strings.NewReader(test), &f))
 
-		if !jsonNumberRegexp.MatchString(test) {
-			t.Errorf("%s should be valid but regexp does not match", test)
-		}
+		assert.True(t, jsonNumberRegexp.MatchString(test), "%s should be valid but regexp does not match", test)
 	}
 
 	for _, test := range []string{
@@ -103,18 +98,12 @@ func TestNumberIsValid(t *testing.T) {
 		"1.e1",
 	} {
 		t.Run(fmt.Sprintf("Test %s is invalid", test), func(t *testing.T) {
-			if isValidNumber(test) {
-				t.Errorf("%s should be invalid", test)
-			}
+			assert.False(t, isValidNumber(test))
 
 			var f float64
-			if err := Unmarshal(strings.NewReader(test), &f); err == nil {
-				t.Errorf("%s should be invalid but unmarshal wrote %v", test, f)
-			}
+			assert.Error(t, Unmarshal(strings.NewReader(test), &f))
 
-			if jsonNumberRegexp.MatchString(test) {
-				t.Errorf("%s should be invalid but matches regexp", test)
-			}
+			assert.False(t, jsonNumberRegexp.MatchString(test), "%s should be invalid but matches regexp", test)
 		})
 	}
 }
