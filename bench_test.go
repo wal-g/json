@@ -14,6 +14,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	"fmt"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"io"
 	"os"
@@ -93,9 +94,7 @@ func BenchmarkCodeEncoder(b *testing.B) {
 	b.RunParallel(func(pb *testing.PB) {
 		enc := NewEncoder(io.Discard)
 		for pb.Next() {
-			if err := enc.Encode(&codeStruct); err != nil {
-				b.Fatal("Encode:", err)
-			}
+			assert.NoError(b, enc.Encode(&codeStruct))
 		}
 	})
 	b.SetBytes(int64(len(codeJSON)))
@@ -164,9 +163,7 @@ func BenchmarkCodeDecoder(b *testing.B) {
 			buf.WriteByte('\n')
 			buf.WriteByte('\n')
 			buf.WriteByte('\n')
-			if err := dec.Decode(&r); err != nil {
-				b.Fatal("Decode:", err)
-			}
+			assert.NoError(b, dec.Decode(&r))
 		}
 	})
 	b.SetBytes(int64(len(codeJSON)))
@@ -181,10 +178,8 @@ func BenchmarkUnicodeDecoder(b *testing.B) {
 	var out string
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		if err := dec.Decode(&out); err != nil {
-			b.Fatal("Decode:", err)
-		}
-		r.Seek(0, 0)
+		assert.NoError(b, dec.Decode(&out))
+		_, _ = r.Seek(0, 0)
 	}
 }
 
@@ -205,9 +200,8 @@ func BenchmarkDecoderStream(b *testing.B) {
 			buf.WriteString(ones)
 		}
 		x = nil
-		if err := dec.Decode(&x); err != nil || x != 1.0 {
-			b.Fatalf("Decode: %v after %d", err, i)
-		}
+		require.NoError(b, dec.Decode(&x))
+		assert.Equal(b, 1.0, x)
 	}
 }
 
@@ -221,9 +215,7 @@ func BenchmarkCodeUnmarshal(b *testing.B) {
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
 			var r codeResponse
-			if err := Unmarshal(bytes.NewReader(codeJSON), &r); err != nil {
-				b.Fatal("Unmarshal:", err)
-			}
+			assert.NoError(b, Unmarshal(bytes.NewReader(codeJSON), &r))
 		}
 	})
 	b.SetBytes(int64(len(codeJSON)))
@@ -239,9 +231,7 @@ func BenchmarkCodeUnmarshalReuse(b *testing.B) {
 	b.RunParallel(func(pb *testing.PB) {
 		var r codeResponse
 		for pb.Next() {
-			if err := Unmarshal(bytes.NewReader(codeJSON), &r); err != nil {
-				b.Fatal("Unmarshal:", err)
-			}
+			assert.NoError(b, Unmarshal(bytes.NewReader(codeJSON), &r))
 		}
 	})
 	b.SetBytes(int64(len(codeJSON)))
@@ -252,9 +242,7 @@ func BenchmarkUnmarshalString(b *testing.B) {
 	b.RunParallel(func(pb *testing.PB) {
 		var s string
 		for pb.Next() {
-			if err := Unmarshal(strings.NewReader(`"hello, world"`), &s); err != nil {
-				b.Fatal("Unmarshal:", err)
-			}
+			assert.NoError(b, Unmarshal(strings.NewReader(`"hello, world"`), &s))
 		}
 	})
 }
@@ -264,9 +252,7 @@ func BenchmarkUnmarshalFloat64(b *testing.B) {
 	b.RunParallel(func(pb *testing.PB) {
 		var f float64
 		for pb.Next() {
-			if err := Unmarshal(strings.NewReader(`3.14`), &f); err != nil {
-				b.Fatal("Unmarshal:", err)
-			}
+			assert.NoError(b, Unmarshal(strings.NewReader(`3.14`), &f))
 		}
 	})
 }
@@ -276,9 +262,7 @@ func BenchmarkUnmarshalInt64(b *testing.B) {
 	b.RunParallel(func(pb *testing.PB) {
 		var x int64
 		for pb.Next() {
-			if err := Unmarshal(strings.NewReader(`3`), &x); err != nil {
-				b.Fatal("Unmarshal:", err)
-			}
+			assert.NoError(b, Unmarshal(strings.NewReader(`3`), &x))
 		}
 	})
 }
@@ -288,9 +272,7 @@ func BenchmarkIssue10335(b *testing.B) {
 	b.RunParallel(func(pb *testing.PB) {
 		var s struct{}
 		for pb.Next() {
-			if err := Unmarshal(strings.NewReader(`{"a":{ }}`), &s); err != nil {
-				b.Fatal(err)
-			}
+			assert.NoError(b, Unmarshal(strings.NewReader(`{"a":{ }}`), &s))
 		}
 	})
 }
@@ -305,7 +287,7 @@ func BenchmarkIssue34127(b *testing.B) {
 	b.RunParallel(func(pb *testing.PB) {
 		builder := strings.Builder{}
 		for pb.Next() {
-			require.NoError(b, Marshal(&j, &builder))
+			assert.NoError(b, Marshal(&j, &builder))
 			builder.Reset()
 		}
 	})
@@ -316,9 +298,7 @@ func BenchmarkUnmapped(b *testing.B) {
 	b.RunParallel(func(pb *testing.PB) {
 		var s struct{}
 		for pb.Next() {
-			if err := Unmarshal(strings.NewReader(`{"s": "hello", "y": 2, "o": {"x": 0}, "a": [1, 99, {"x": 1}]}`), &s); err != nil {
-				b.Fatal(err)
-			}
+			require.NoError(b, Unmarshal(strings.NewReader(`{"s": "hello", "y": 2, "o": {"x": 0}, "a": [1, 99, {"x": 1}]}`), &s))
 		}
 	})
 }
@@ -396,9 +376,7 @@ func BenchmarkEncodeMarshaler(b *testing.B) {
 		enc := NewEncoder(io.Discard)
 
 		for pb.Next() {
-			if err := enc.Encode(&m); err != nil {
-				b.Fatal("Encode:", err)
-			}
+			assert.NoError(b, enc.Encode(&m))
 		}
 	})
 }
