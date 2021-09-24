@@ -11,6 +11,7 @@
 package json
 
 import (
+	"bufio"
 	"bytes"
 	"encoding"
 	"encoding/base64"
@@ -247,7 +248,7 @@ func (e *MarshalerError) Unwrap() error { return e.Err }
 var hex = "0123456789abcdef"
 
 type writerEncodeState struct {
-	io.Writer // output
+	*bufio.Writer // output
 	scratch   [64]byte
 
 	// Keep track of what pointers we've seen in the current recursive call
@@ -261,7 +262,7 @@ type writerEncodeState struct {
 
 func newWriterEncodeState(buf io.Writer) *writerEncodeState {
 	return &writerEncodeState{
-		Writer:  buf,
+		Writer:  bufio.NewWriter(buf),
 		ptrSeen: make(map[interface{}]struct{}),
 	}
 }
@@ -274,6 +275,9 @@ func (e *writerEncodeState) marshal(v interface{}, opts encOpts) (err error) {
 			} else {
 				panic(r)
 			}
+		}
+		if err == nil {
+			err = e.Flush()
 		}
 	}()
 	return e.reflectValue(reflect.ValueOf(v), opts)
@@ -1113,8 +1117,10 @@ func (e *writerEncodeState) string(s string, escapeHTML bool) error {
 	}
 	buf.WriteByte('"')
 
-	_, err := e.Write(buf.Bytes())
-	return err
+	if _, err := e.Write(buf.Bytes()); err != nil {
+		return err
+	}
+	return e.Flush()
 }
 
 // NOTE: keep in sync with string above.
@@ -1189,8 +1195,10 @@ func (e *writerEncodeState) stringBytes(s []byte, escapeHTML bool) error {
 	}
 	buf.WriteByte('"')
 
-	_, err := e.Write(buf.Bytes())
-	return err
+	if _, err := e.Write(buf.Bytes()); err != nil {
+		return err
+	}
+	return e.Flush()
 }
 
 // A field represents a single field found in a struct.
