@@ -12,7 +12,7 @@ const (
 
 type streamReader struct {
 	buf      strings.Builder
-	readBuf  buffer.Buffer
+	readBuf  buffer.ReadBuffer
 	dropped  int
 	finished bool
 	scanner  *scanner
