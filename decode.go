@@ -95,14 +95,7 @@ import (
 // character U+FFFD.
 //
 func Unmarshal(data io.Reader, v interface{}) error {
-	// Check for well-formedness.
-	// Avoids filling out half a reader structure
-	// before discovering a JSON syntax error.
 	var d decodeState
-	//err := checkValid(data, &d.scan)
-	//if err != nil {
-	//	return err
-	//}
 
 	d.init(newStreamReader(data))
 	return d.unmarshal(v)
