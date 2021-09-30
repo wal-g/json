@@ -5,6 +5,7 @@
 package json
 
 import (
+	"github.com/EinKrebs/json/mocks"
 	"github.com/stretchr/testify/require"
 	"strings"
 	"testing"
@@ -98,9 +99,9 @@ var structTagObjectKeyTests = []struct {
 }
 
 func TestStructTagObjectKey(t *testing.T) {
-	buf := strings.Builder{}
+	buf := mocks.NewBuildCloser()
 	for _, tt := range structTagObjectKeyTests {
-		require.NoError(t, Marshal(tt.raw, &buf))
+		require.NoError(t, Marshal(tt.raw, buf))
 		var f interface{}
 		require.NoError(t, Unmarshal(strings.NewReader(buf.String()), &f))
 		for i, v := range f.(map[string]interface{}) {

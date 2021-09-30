@@ -10,9 +10,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/EinKrebs/json/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"image"
+	"io"
 	"math"
 	"math/big"
 	"net"
@@ -987,13 +989,25 @@ var unmarshalTests = []unmarshalTest{
 }
 
 func TestMarshal(t *testing.T) {
-	buf := strings.Builder{}
-	require.NoError(t, Marshal(allValue, &buf))
+	buf := mocks.NewBuildCloser()
+	require.NoError(t, Marshal(allValue, buf))
 	require.Equal(t, buf.String(), allValueCompact)
 
 	buf.Reset()
-	require.NoError(t, Marshal(pallValue, &buf))
+	require.NoError(t, Marshal(pallValue, buf))
 	assert.Equal(t, buf.String(), pallValueCompact)
+}
+
+func TestMarshalAsync(t *testing.T) {
+	r, w := io.Pipe()
+	var marshalErr error
+	go func() {
+		marshalErr = Marshal(allValue, w)
+	}()
+	data, err := io.ReadAll(r)
+	require.NoError(t, err)
+	require.NoError(t, marshalErr)
+	require.Equal(t, string(data), allValueCompact)
 }
 
 var badUTF8 = []struct {
@@ -1008,9 +1022,9 @@ var badUTF8 = []struct {
 }
 
 func TestMarshalBadUTF8(t *testing.T) {
-	buf := strings.Builder{}
+	buf := mocks.NewBuildCloser()
 	for _, tt := range badUTF8 {
-		require.NoError(t, Marshal(tt.in, &buf))
+		require.NoError(t, Marshal(tt.in, buf))
 		assert.Equal(t, tt.out, buf.String())
 		buf.Reset()
 	}
@@ -1018,8 +1032,8 @@ func TestMarshalBadUTF8(t *testing.T) {
 
 func TestMarshalNumberZeroVal(t *testing.T) {
 	var n Number
-	buf := strings.Builder{}
-	require.NoError(t, Marshal(n, &buf))
+	buf := mocks.NewBuildCloser()
+	require.NoError(t, Marshal(n, buf))
 	assert.Equal(t, "0", buf.String())
 }
 
@@ -1055,8 +1069,8 @@ func TestMarshalEmbeds(t *testing.T) {
 			Q: 18,
 		},
 	}
-	buf := strings.Builder{}
-	require.NoError(t, Marshal(top, &buf))
+	buf := mocks.NewBuildCloser()
+	require.NoError(t, Marshal(top, buf))
 	want := "{\"Level0\":1,\"Level1b\":2,\"Level1c\":3,\"Level1a\":5,\"LEVEL1B\":6,\"e\":{\"Level1a\":8,\"Level1b\":9,\"Level1c\":10,\"Level1d\":11,\"x\":12},\"Loop1\":13,\"Loop2\":14,\"X\":15,\"Y\":16,\"Z\":17,\"Q\":18}"
 	assert.Equal(t, want, buf.String())
 }
@@ -1130,8 +1144,8 @@ func TestUnmarshal(t *testing.T) {
 
 		// Check round trip also decodes correctly.
 		if tt.err == nil {
-			buf := strings.Builder{}
-			require.NoError(t, Marshal(v.Interface(), &buf), "error re-marshaling")
+			buf := mocks.NewBuildCloser()
+			require.NoError(t, Marshal(v.Interface(), buf), "error re-marshaling")
 			enc := []byte(buf.String())
 			if tt.golden && !bytes.Equal(enc, in) {
 				t.Errorf("#%d: remarshal mismatch:\nhave: %s\nwant: %s", i, enc, in)
@@ -1159,9 +1173,22 @@ func TestUnmarshalMarshal(t *testing.T) {
 	initBig()
 	var v interface{}
 	require.NoError(t, Unmarshal(bytes.NewReader(jsonBig), &v))
-	buf := strings.Builder{}
-	require.NoError(t, Marshal(v, &buf))
+	buf := mocks.NewBuildCloser()
+	require.NoError(t, Marshal(v, buf))
 	assert.Equal(t, jsonBig, []byte(buf.String()))
+}
+
+func TestMarshalUnmarshalAsync(t *testing.T) {
+	want := genValue(100000)
+	r, w := io.Pipe()
+	var err error
+	go func() {
+		err = Marshal(want, w)
+	}()
+	var got interface{}
+	require.NoError(t, Unmarshal(r, &got))
+	require.NoError(t, err)
+	assert.Equal(t, want, got)
 }
 
 var numberTests = []struct {
@@ -1199,8 +1226,8 @@ func TestLargeByteSlice(t *testing.T) {
 	for i := range s0 {
 		s0[i] = byte(i)
 	}
-	buf := strings.Builder{}
-	require.NoError(t, Marshal(s0, &buf))
+	buf := mocks.NewBuildCloser()
+	require.NoError(t, Marshal(s0, buf))
 	var s1 []byte
 	require.NoError(t, Unmarshal(strings.NewReader(buf.String()), &s1))
 	assert.Equal(t, s0, s1)
@@ -1227,8 +1254,8 @@ func TestUnmarshalPtrPtr(t *testing.T) {
 func TestEscape(t *testing.T) {
 	const input = `"foobar"<html>` + " [\u2028 \u2029]"
 	const expected = `"\"foobar\"\u003chtml\u003e [\u2028 \u2029]"`
-	buf := strings.Builder{}
-	require.NoError(t, Marshal(input, &buf))
+	buf := mocks.NewBuildCloser()
+	require.NoError(t, Marshal(input, buf))
 	assert.Equal(t, expected, buf.String())
 }
 
@@ -1830,8 +1857,8 @@ func TestStringKind(t *testing.T) {
 		"foo": 42,
 	}
 
-	buf := strings.Builder{}
-	require.NoError(t, Marshal(m1, &buf))
+	buf := mocks.NewBuildCloser()
+	require.NoError(t, Marshal(m1, buf))
 	require.NoError(t, Unmarshal(strings.NewReader(buf.String()), &m2))
 	assert.Equal(t, m1, m2)
 }
@@ -1844,8 +1871,8 @@ func TestByteKind(t *testing.T) {
 
 	a := byteKind("hello")
 
-	buf := strings.Builder{}
-	require.NoError(t, Marshal(a, &buf))
+	buf := mocks.NewBuildCloser()
+	require.NoError(t, Marshal(a, buf))
 	var b byteKind
 	require.NoError(t, Unmarshal(strings.NewReader(buf.String()), &b))
 	assert.Equal(t, a, b)
@@ -1858,8 +1885,8 @@ func TestSliceOfCustomByte(t *testing.T) {
 
 	a := []Uint8("hello")
 
-	buf := strings.Builder{}
-	require.NoError(t, Marshal(a, &buf))
+	buf := mocks.NewBuildCloser()
+	require.NoError(t, Marshal(a, buf))
 	var b []Uint8
 	require.NoError(t, Unmarshal(strings.NewReader(buf.String()), &b))
 	assert.Equal(t, a, b)
@@ -2061,8 +2088,8 @@ func TestInvalidStringOption(t *testing.T) {
 		P *int              `json:",string"`
 	}{M: make(map[string]string), S: make([]string, 0), I: num, P: &num}
 
-	buf := strings.Builder{}
-	require.NoError(t, Marshal(item, &buf))
+	buf := mocks.NewBuildCloser()
+	require.NoError(t, Marshal(item, buf))
 	require.NoError(t, Unmarshal(strings.NewReader(buf.String()), &item))
 }
 
@@ -2280,8 +2307,8 @@ func TestUnmarshalRescanLiteralMangledUnquote(t *testing.T) {
 	}
 	t1 := T{"aaa\tbbb"}
 
-	buf := strings.Builder{}
-	require.NoError(t, Marshal(t1, &buf))
+	buf := mocks.NewBuildCloser()
+	require.NoError(t, Marshal(t1, buf))
 	b := []byte(buf.String())
 	m, _ := json.Marshal(t1)
 	require.Equal(t, m, b)
@@ -2294,7 +2321,7 @@ func TestUnmarshalRescanLiteralMangledUnquote(t *testing.T) {
 	input := map[textUnmarshalerString]string{"FOO": "", `"`: ""}
 
 	buf.Reset()
-	require.NoError(t, Marshal(input, &buf))
+	require.NoError(t, Marshal(input, buf))
 	var got map[textUnmarshalerString]string
 	require.NoError(t, Unmarshal(strings.NewReader(buf.String()), &got))
 	want := map[textUnmarshalerString]string{"foo": "", `"`: ""}

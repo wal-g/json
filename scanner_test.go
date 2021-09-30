@@ -6,12 +6,12 @@ package json
 
 import (
 	"bytes"
+	"github.com/EinKrebs/json/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"math"
 	"math/rand"
 	"reflect"
-	"strings"
 	"testing"
 )
 
@@ -172,8 +172,8 @@ func initBig() {
 	if testing.Short() {
 		n = 100
 	}
-	buf := strings.Builder{}
-	err := Marshal(genValue(n), &buf)
+	buf := mocks.NewBuildCloser()
+	err := Marshal(genValue(n), buf)
 	if err != nil {
 		panic(err)
 	}
