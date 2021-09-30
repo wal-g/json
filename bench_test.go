@@ -14,6 +14,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	"fmt"
+	"github.com/EinKrebs/json/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"io"
@@ -64,11 +65,11 @@ func codeInit() {
 		panic("unmarshal code.json: " + err.Error())
 	}
 
-	b := bytes.Buffer{}
-	if err = Marshal(&codeStruct, &b); err != nil {
+	b := mocks.NewBuildCloser()
+	if err = Marshal(&codeStruct, b); err != nil {
 		panic("marshal code.json: " + err.Error())
 	}
-	data = b.Bytes()
+	data = []byte(b.String())
 
 	if !bytes.Equal(data, codeJSON) {
 		println("different lengths", len(data), len(codeJSON))
@@ -109,7 +110,7 @@ func BenchmarkCodeMarshal(b *testing.B) {
 	}
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			builder := &strings.Builder{}
+			builder := mocks.NewBuildCloser()
 			require.NoError(b, Marshal(&codeStruct, builder))
 			builder.Reset()
 		}
@@ -127,9 +128,9 @@ func benchMarshalBytes(n int) func(*testing.B) {
 		bytes.Repeat(sample, (n/len(sample))+1)[:n],
 	}
 	return func(b *testing.B) {
-		builder := strings.Builder{}
+		builder := mocks.NewBuildCloser()
 		for i := 0; i < b.N; i++ {
-			require.NoError(b, Marshal(v, &builder))
+			require.NoError(b, Marshal(v, builder))
 			builder.Reset()
 		}
 	}
@@ -285,9 +286,9 @@ func BenchmarkIssue34127(b *testing.B) {
 		Bar: `foobar`,
 	}
 	b.RunParallel(func(pb *testing.PB) {
-		builder := strings.Builder{}
+		builder := mocks.NewBuildCloser()
 		for pb.Next() {
-			assert.NoError(b, Marshal(&j, &builder))
+			assert.NoError(b, Marshal(&j, builder))
 			builder.Reset()
 		}
 	})

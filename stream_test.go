@@ -6,6 +6,7 @@ package json
 
 import (
 	"bytes"
+	"github.com/EinKrebs/json/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"io"
@@ -221,8 +222,8 @@ func TestRawMessage(t *testing.T) {
 	require.NoError(t, Unmarshal(strings.NewReader(msg), &data))
 	require.Equal(t, raw, string(data.Id))
 
-	buf := strings.Builder{}
-	require.NoError(t, Marshal(&data, &buf))
+	buf := mocks.NewBuildCloser()
+	require.NoError(t, Marshal(&data, buf))
 	assert.Equal(t, msg, buf.String())
 }
 
@@ -237,8 +238,8 @@ func TestNullRawMessage(t *testing.T) {
 	require.NoError(t, Unmarshal(strings.NewReader(msg), &data))
 	require.Equal(t, "null", string(data.Id))
 	require.Equal(t, (*RawMessage)(nil), data.IdPtr)
-	buf := strings.Builder{}
-	require.NoError(t, Marshal(&data, &buf))
+	buf := mocks.NewBuildCloser()
+	require.NoError(t, Marshal(&data, buf))
 	assert.Equal(t, msg, buf.String())
 }
 

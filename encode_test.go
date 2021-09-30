@@ -9,6 +9,7 @@ import (
 	"encoding"
 	"encoding/json"
 	"fmt"
+	"github.com/EinKrebs/json/mocks"
 	"github.com/stretchr/testify/assert"
 	"log"
 	"math"
@@ -56,14 +57,14 @@ type renamedRenamedByteSlice []renamedByte
 
 func TestEncodeRenamedByteSlice(t *testing.T) {
 	s := renamedByteSlice("abc")
-	buf := strings.Builder{}
-	require.NoError(t, Marshal(s, &buf))
+	buf := mocks.NewBuildCloser()
+	require.NoError(t, Marshal(s, buf))
 	expect := `"YWJj"`
 	assert.Equal(t, buf.String(), expect, " got %s want %s", buf.String(), expect)
 
 	r := renamedRenamedByteSlice("abc")
 	buf.Reset()
-	require.NoError(t, Marshal(r, &buf))
+	require.NoError(t, Marshal(r, buf))
 	assert.Equal(t, buf.String(), expect, " got %s want %s", buf.String(), expect)
 }
 
@@ -111,11 +112,11 @@ func init() {
 }
 
 func TestSamePointerNoCycle(t *testing.T) {
-	require.NoError(t, Marshal(samePointerNoCycle, &strings.Builder{}))
+	require.NoError(t, Marshal(samePointerNoCycle, mocks.NewBuildCloser()))
 }
 
 func TestSliceNoCycle(t *testing.T) {
-	require.NoError(t, Marshal(sliceNoCycle, &strings.Builder{}))
+	require.NoError(t, Marshal(sliceNoCycle, mocks.NewBuildCloser()))
 }
 
 var unsupportedValues = []interface{}{
@@ -131,7 +132,7 @@ var unsupportedValues = []interface{}{
 
 func TestUnsupportedValues(t *testing.T) {
 	for _, v := range unsupportedValues {
-		err := Marshal(v, &strings.Builder{})
+		err := Marshal(v, mocks.NewBuildCloser())
 		require.Error(t, err)
 		_, ok := err.(*UnsupportedValueError)
 		assert.True(t, ok, "for %v, got %T want UnsupportedValueError", v, err)
@@ -197,8 +198,8 @@ func TestRefValMarshal(t *testing.T) {
 		V3: new(ValText),
 	}
 	const want = `{"R0":"ref","R1":"ref","R2":"\"ref\"","R3":"\"ref\"","V0":"val","V1":"val","V2":"\"val\"","V3":"\"val\""}`
-	buf := strings.Builder{}
-	require.NoError(t, Marshal(&s, &buf))
+	buf := mocks.NewBuildCloser()
+	require.NoError(t, Marshal(&s, buf))
 	assert.Equal(t, want, buf.String())
 }
 
@@ -219,14 +220,14 @@ func (CText) MarshalText() ([]byte, error) {
 func TestMarshalerEscaping(t *testing.T) {
 	var c C
 	want := `"\u003c\u0026\u003e"`
-	buf := strings.Builder{}
-	require.NoError(t, Marshal(c, &buf))
+	buf := mocks.NewBuildCloser()
+	require.NoError(t, Marshal(c, buf))
 	assert.Equal(t, want, buf.String())
 
 	var ct CText
 	want = `"\"\u003c\u0026\u003e\""`
 	buf.Reset()
-	require.NoError(t, Marshal(ct, &buf))
+	require.NoError(t, Marshal(ct, buf))
 	assert.Equal(t, want, buf.String())
 }
 
@@ -396,8 +397,8 @@ func TestAnonymousFields(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.label, func(t *testing.T) {
-			buf := strings.Builder{}
-			require.NoError(t, Marshal(tt.makeInput(), &buf))
+			buf := mocks.NewBuildCloser()
+			require.NoError(t, Marshal(tt.makeInput(), buf))
 			assert.Equal(t, tt.want, buf.String())
 		})
 	}
@@ -469,8 +470,8 @@ func TestNilMarshal(t *testing.T) {
 	}
 
 	for _, tt := range testCases {
-		buf := strings.Builder{}
-		require.NoError(t, Marshal(tt.v, &buf))
+		buf := mocks.NewBuildCloser()
+		require.NoError(t, Marshal(tt.v, buf))
 		assert.Equal(t, tt.want, buf.String())
 	}
 }
@@ -481,8 +482,8 @@ func TestEmbeddedBug(t *testing.T) {
 		BugA{"A"},
 		"B",
 	}
-	buf := strings.Builder{}
-	require.NoError(t, Marshal(v, &buf))
+	buf := mocks.NewBuildCloser()
+	require.NoError(t, Marshal(v, buf))
 	want := `{"S":"B"}`
 	assert.Equal(t, want, buf.String())
 	// Now check that the duplicate field, S, does not appear.
@@ -490,7 +491,7 @@ func TestEmbeddedBug(t *testing.T) {
 		A: 23,
 	}
 	buf.Reset()
-	require.NoError(t, Marshal(x, &buf))
+	require.NoError(t, Marshal(x, buf))
 	want = `{"A":23}`
 	assert.Equal(t, want, buf.String())
 }
@@ -511,8 +512,8 @@ func TestTaggedFieldDominates(t *testing.T) {
 		BugA{"BugA"},
 		BugD{"BugD"},
 	}
-	buf := strings.Builder{}
-	require.NoError(t, Marshal(v, &buf))
+	buf := mocks.NewBuildCloser()
+	require.NoError(t, Marshal(v, buf))
 	want := `{"S":"BugD"}`
 	assert.Equal(t, want, buf.String())
 }
@@ -533,8 +534,8 @@ func TestDuplicatedFieldDisappears(t *testing.T) {
 			BugD{"nested BugD"},
 		},
 	}
-	buf := strings.Builder{}
-	require.NoError(t, Marshal(v, &buf))
+	buf := mocks.NewBuildCloser()
+	require.NoError(t, Marshal(v, buf))
 	want := `{}`
 	assert.Equal(t, want, buf.String())
 }
@@ -595,7 +596,7 @@ func TestIssue10281(t *testing.T) {
 	}
 	x := Foo{Number(`invalid`)}
 
-	assert.Error(t, Marshal(&x, &strings.Builder{}))
+	assert.Error(t, Marshal(&x, mocks.NewBuildCloser()))
 }
 
 func TestHTMLEscape(t *testing.T) {
@@ -612,8 +613,8 @@ func TestEncodePointerString(t *testing.T) {
 		N *int64 `json:"n,string"`
 	}
 	var n int64 = 42
-	buf := strings.Builder{}
-	require.NoError(t, Marshal(stringPointer{N: &n}, &buf))
+	buf := mocks.NewBuildCloser()
+	require.NoError(t, Marshal(stringPointer{N: &n}, buf))
 	assert.Equal(t, `{"n":"42"}`, buf.String())
 	var back stringPointer
 	require.NoError(t, Unmarshal(strings.NewReader(buf.String()), &back))
@@ -661,8 +662,8 @@ var encodeStringTests = []struct {
 
 func TestEncodeString(t *testing.T) {
 	for _, tt := range encodeStringTests {
-		buf := strings.Builder{}
-		require.NoError(t, Marshal(tt.in, &buf))
+		buf := mocks.NewBuildCloser()
+		require.NoError(t, Marshal(tt.in, buf))
 		assert.Equal(t, tt.out, buf.String())
 	}
 }
@@ -709,31 +710,31 @@ func TestEncodeBytekind(t *testing.T) {
 		{[]int{9, 3}, `[9,3]`},
 	}
 	for _, d := range testdata {
-		buf := strings.Builder{}
-		require.NoError(t, Marshal(d.data, &buf))
+		buf := mocks.NewBuildCloser()
+		require.NoError(t, Marshal(d.data, buf))
 		assert.Equal(t, d.want, buf.String())
 	}
 }
 
 func TestTextMarshalerMapKeysAreSorted(t *testing.T) {
-	buf := strings.Builder{}
+	buf := mocks.NewBuildCloser()
 	require.NoError(t, Marshal(map[unmarshalerText]int{
 		{"x", "y"}: 1,
 		{"y", "x"}: 2,
 		{"a", "z"}: 3,
 		{"z", "a"}: 4,
-	}, &buf))
+	}, buf))
 	const want = `{"a:z":3,"x:y":1,"y:x":2,"z:a":4}`
 	assert.Equal(t, want, buf.String())
 }
 
 // https://golang.org/issue/33675
 func TestNilMarshalerTextMapKey(t *testing.T) {
-	buf := strings.Builder{}
+	buf := mocks.NewBuildCloser()
 	require.NoError(t, Marshal(map[*unmarshalerText]int{
 		(*unmarshalerText)(nil): 1,
 		{"A", "B"}:              2,
-	}, &buf))
+	}, buf))
 	const want = `{"":1,"A:B":2}`
 	assert.Equal(t, want, buf.String())
 }
@@ -771,8 +772,8 @@ func TestMarshalFloat(t *testing.T) {
 			f = float64(float32(f)) // round
 			vf = float32(f)
 		}
-		buf := strings.Builder{}
-		err := Marshal(vf, &buf)
+		buf := mocks.NewBuildCloser()
+		err := Marshal(vf, buf)
 		if err != nil {
 			t.Errorf("Marshal(%T(%g)): %v", vf, vf, err)
 			nfail++
@@ -932,9 +933,9 @@ func TestMarshalRawMessageValue(t *testing.T) {
 		{&T2{&rawText}, `{"M":"foo"}`, true},
 	}
 
-	buf := strings.Builder{}
+	buf := mocks.NewBuildCloser()
 	for i, tt := range tests {
-		err := Marshal(tt.in, &buf)
+		err := Marshal(tt.in, buf)
 		if tt.ok {
 			assert.NoError(t, err)
 			assert.Equal(t, tt.want, buf.String(), "Test %d", i)
@@ -950,15 +951,15 @@ type marshalPanic struct{}
 func (marshalPanic) MarshalJSON() ([]byte, error) { panic(0xdead) }
 
 func TestMarshalPanic(t *testing.T) {
-	assert.PanicsWithValue(t, 0xdead, func() { _ = Marshal(&marshalPanic{}, &strings.Builder{}) })
+	assert.PanicsWithValue(t, 0xdead, func() { _ = Marshal(&marshalPanic{}, mocks.NewBuildCloser()) })
 }
 
 func TestMarshalUncommonFieldNames(t *testing.T) {
 	v := struct {
 		A0, À, Aβ int
 	}{}
-	buf := strings.Builder{}
-	require.NoError(t, Marshal(v, &buf))
+	buf := mocks.NewBuildCloser()
+	require.NoError(t, Marshal(v, buf))
 	assert.Equal(t, `{"A0":0,"À":0,"Aβ":0}`, buf.String())
 }
 
