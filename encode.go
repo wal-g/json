@@ -157,10 +157,13 @@ import (
 // handle them. Passing cyclic structures to Marshal will result in
 // an error.
 //
-func Marshal(v interface{}, buf io.Writer) error {
+func Marshal(v interface{}, buf io.WriteCloser) error {
 	e := newWriterEncodeState(buf)
 
-	return e.marshal(v, encOpts{escapeHTML: true})
+	if err := e.marshal(v, encOpts{escapeHTML: true}); err != nil {
+		return err
+	}
+	return buf.Close()
 }
 
 // HTMLEscape appends to dst the JSON-encoded src with <, >, &, U+2028 and U+2029
