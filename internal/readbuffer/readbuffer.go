@@ -28,9 +28,7 @@ func (r *ReadBuffer) Get(n int) ([]byte, error) {
 	copy(got, r.buf[r.index:r.len])
 	r.index = r.len
 	n -= len(got)
-	if err := r.load(); err == io.EOF && len(got) > 0 {
-		return got, nil
-	} else if err != nil {
+	if err := r.load(); err != nil {
 		return got, err
 	}
 	if r.len-r.index >= n {
