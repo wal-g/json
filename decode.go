@@ -346,20 +346,23 @@ Switch:
 			i++
 		}
 	case 't': // true
-		i += len("rue")
+		i += len("rue") - 1
 		if err = d.Load(i); err != nil {
 			return err
 		}
+		i++
 	case 'f': // false
-		i += len("alse")
+		i += len("alse") - 1
 		if err = d.Load(i); err != nil {
 			return err
 		}
+		i++
 	case 'n': // null
-		i += len("ull")
+		i += len("ull") - 1
 		if err = d.Load(i); err != nil {
 			return err
 		}
+		i++
 	}
 	if err != nil && err != io.EOF {
 		return err
