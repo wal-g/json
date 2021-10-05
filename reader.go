@@ -43,13 +43,11 @@ func (s *streamReader) Load(i int) error {
 		}
 	}
 	s.buf.Write(buf[:n])
-	if n < neededLen {
+	if err == io.EOF {
+		s.finished = true
 		if code := s.scanner.eof(); code == scanError {
 			return s.scanner.err
 		}
-	}
-	if err == io.EOF {
-		s.finished = true
 	}
 	return err
 }
