@@ -1,8 +1,14 @@
 package readbuffer
 
-import "io"
+import (
+	"io"
+	"time"
+)
 
-const readBufSize = 1 << 10
+const (
+	readBufSize = 1 << 10
+	readTimeout = 100 * time.Millisecond
+)
 
 type ReadBuffer struct {
 	buf   []byte
@@ -24,21 +30,24 @@ func (r *ReadBuffer) Get(n int) ([]byte, error) {
 		r.index += n
 		return res, nil
 	}
-	got := make([]byte, r.len-r.index)
-	copy(got, r.buf[r.index:r.len])
+	res := make([]byte, r.len-r.index)
+	copy(res, r.buf[r.index:r.len])
 	r.index = r.len
-	n -= len(got)
-	if err := r.load(); err != nil {
-		return got, err
+	n -= len(res)
+	var err error
+	for err = r.load(); err == nil; err = r.load() {
+		if r.len-r.index >= n {
+			res = append(res, r.buf[r.index:r.index+n]...)
+			r.index += n
+			return res, nil
+		}
+
+		res = append(res, r.buf[r.index:r.len]...)
+		n -= r.len - r.index
+		r.index = r.len
+		time.Sleep(readTimeout)
 	}
-	if r.len-r.index >= n {
-		res := append(got, r.buf[r.index:r.index+n]...)
-		r.index += n
-		return res, nil
-	}
-	res := append(got, r.buf[r.index:r.len]...)
-	r.index = r.len
-	return res, nil
+	return res, err
 }
 
 func (r *ReadBuffer) load() error {
