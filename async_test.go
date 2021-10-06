@@ -1,6 +1,7 @@
 package json
 
 import (
+	"encoding/json"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"io"
@@ -11,16 +12,16 @@ import (
 var _ io.Reader = &slowReader{}
 
 type slowReader struct {
-	src []byte
+	src   []byte
 	index int
-	len int
+	len   int
 	pause time.Duration
 }
 
 func newSlowReader(src []byte, pause time.Duration) *slowReader {
 	return &slowReader{
-		src: src,
-		len: 1,
+		src:   src,
+		len:   1,
 		pause: pause,
 	}
 }
@@ -49,9 +50,11 @@ func (s *slowReader) Read(p []byte) (n int, err error) {
 
 func TestUnmarshal_SlowReader(t *testing.T) {
 	initBig()
-	data := newSlowReader(jsonBig, 10 * time.Millisecond)
+	data := newSlowReader(jsonBig, time.Microsecond)
 	res := new(map[string]interface{})
+	expected := new(map[string]interface{})
+	require.NoError(t, json.Unmarshal(jsonBig, expected))
 	go data.Work()
 	require.NoError(t, Unmarshal(data, res))
-	assert.Equal(t, jsonBig, res)
+	assert.Equal(t, expected, res)
 }
