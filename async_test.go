@@ -33,18 +33,20 @@ func (s *slowReader) Work() {
 	}
 }
 
-func (s *slowReader) Read(p []byte) (n int, err error) {
+func (s *slowReader) Read(p []byte) (int, error) {
+	n := len(p)
+	readerLen := s.len
 	if s.index == len(s.src) {
 		return 0, io.EOF
 	}
-	if s.index + len(p) <= s.len {
-		copy(p, s.src[s.index:s.index + n])
-		s.index += len(p)
-		return len(p), nil
+	if s.index+n <= readerLen {
+		copy(p, s.src[s.index:s.index+n])
+		s.index += n
+		return n, nil
 	}
-	length := s.len - s.index
-	copy(p, s.src[s.index:s.index +length])
-	s.index += length
+	length := readerLen - s.index
+	copy(p, s.src[s.index:readerLen])
+	s.index = readerLen
 	return length, nil
 }
 
