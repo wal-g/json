@@ -48,19 +48,6 @@ func (r *ReadBuffer) Get(n int) ([]byte, error) {
 		time.Sleep(readTimeout)
 	}
 	return res, err
-	//if err := r.load(); err == io.EOF && len(res) > 0 {
-	//	return res, nil
-	//} else if err != nil {
-	//	return res, err
-	//}
-	//if r.len-r.index >= n {
-	//	res = append(res, r.buf[r.index:r.index+n]...)
-	//	r.index += n
-	//	return res, nil
-	//}
-	//res = append(res, r.buf[r.index:r.len]...)
-	//r.index = r.len
-	//return res, nil
 }
 
 func (r *ReadBuffer) load() error {
