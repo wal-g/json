@@ -76,13 +76,6 @@ var ifaceNumAsFloat64 = map[string]interface{}{
 	"k4": map[string]interface{}{"kk1": "s", "kk2": float64(2)},
 }
 
-var ifaceNumAsNumber = map[string]interface{}{
-	"k1": Number("1"),
-	"k2": "s",
-	"k3": []interface{}{Number("1"), Number("2.0"), Number("3e-3")},
-	"k4": map[string]interface{}{"kk1": "s", "kk2": Number("2")},
-}
-
 type tx struct {
 	x int //nolint:unused,structcheck
 }
@@ -395,13 +388,11 @@ type mapStringToStringData struct {
 }
 
 type unmarshalTest struct {
-	in                    string
-	ptr                   interface{} // new(type)
-	out                   interface{}
-	err                   error
-	useNumber             bool
-	golden                bool
-	disallowUnknownFields bool
+	in     string
+	ptr    interface{} // new(type)
+	out    interface{}
+	err    error
+	golden bool
 }
 
 type B struct {
@@ -419,10 +410,8 @@ var unmarshalTests = []unmarshalTest{
 	{in: `1`, ptr: new(int), out: 1},
 	{in: `1.2`, ptr: new(float64), out: 1.2},
 	{in: `-5`, ptr: new(int16), out: int16(-5)},
-	{in: `2`, ptr: new(Number), out: Number("2"), useNumber: true},
 	{in: `2`, ptr: new(Number), out: Number("2")},
 	{in: `2`, ptr: new(interface{}), out: float64(2.0)},
-	{in: `2`, ptr: new(interface{}), out: Number("2"), useNumber: true},
 	{in: `"a\u1234"`, ptr: new(string), out: "a\u1234"},
 	{in: `"http:\/\/"`, ptr: new(string), out: "http://"},
 	{in: `"g-clef: \uD834\uDD1E"`, ptr: new(string), out: "g-clef: \U0001D11E"},
@@ -431,12 +420,9 @@ var unmarshalTests = []unmarshalTest{
 	{in: `{"X": [1,2,3], "Y": 4}`, ptr: new(T), out: T{Y: 4}, err: &UnmarshalTypeError{"array", reflect.TypeOf(""), 7, "T", "X"}},
 	{in: `{"X": 23}`, ptr: new(T), out: T{}, err: &UnmarshalTypeError{"number", reflect.TypeOf(""), 8, "T", "X"}}, {in: `{"x": 1}`, ptr: new(tx), out: tx{}},
 	{in: `{"x": 1}`, ptr: new(tx), out: tx{}},
-	{in: `{"x": 1}`, ptr: new(tx), err: fmt.Errorf("json: unknown field \"x\""), disallowUnknownFields: true},
 	{in: `{"S": 23}`, ptr: new(W), out: W{}, err: &UnmarshalTypeError{"number", reflect.TypeOf(SS("")), 0, "W", "S"}},
 	{in: `{"F1":1,"F2":2,"F3":3}`, ptr: new(V), out: V{F1: float64(1), F2: int32(2), F3: Number("3")}},
-	{in: `{"F1":1,"F2":2,"F3":3}`, ptr: new(V), out: V{F1: Number("1"), F2: int32(2), F3: Number("3")}, useNumber: true},
 	{in: `{"k1":1,"k2":"s","k3":[1,2.0,3e-3],"k4":{"kk1":"s","kk2":2}}`, ptr: new(interface{}), out: ifaceNumAsFloat64},
-	{in: `{"k1":1,"k2":"s","k3":[1,2.0,3e-3],"k4":{"kk1":"s","kk2":2}}`, ptr: new(interface{}), out: ifaceNumAsNumber, useNumber: true},
 
 	// raw values with whitespace
 	{in: "\n true ", ptr: new(bool), out: true},
@@ -447,18 +433,14 @@ var unmarshalTests = []unmarshalTest{
 
 	// Z has a "-" tag.
 	{in: `{"Y": 1, "Z": 2}`, ptr: new(T), out: T{Y: 1}},
-	{in: `{"Y": 1, "Z": 2}`, ptr: new(T), err: fmt.Errorf("json: unknown field \"Z\""), disallowUnknownFields: true},
 
 	{in: `{"alpha": "abc", "alphabet": "xyz"}`, ptr: new(U), out: U{Alphabet: "abc"}},
-	{in: `{"alpha": "abc", "alphabet": "xyz"}`, ptr: new(U), err: fmt.Errorf("json: unknown field \"alphabet\""), disallowUnknownFields: true},
 	{in: `{"alpha": "abc"}`, ptr: new(U), out: U{Alphabet: "abc"}},
 	{in: `{"alphabet": "xyz"}`, ptr: new(U), out: U{}},
-	{in: `{"alphabet": "xyz"}`, ptr: new(U), err: fmt.Errorf("json: unknown field \"alphabet\""), disallowUnknownFields: true},
 
 	// syntax errors
 	{in: `{"X": "foo", "Y"}`, err: &SyntaxError{"invalid character '}' after object key", 17}},
 	{in: `[1, 2, 3+]`, err: &SyntaxError{"invalid character '+' after array element", 9}},
-	{in: `{"X":12x}`, err: &SyntaxError{"invalid character 'x' after object key:value pair", 8}, useNumber: true},
 	{in: `[2, 3`, err: &SyntaxError{msg: "unexpected end of JSON input", Offset: 5}},
 	{in: `{"F3": -}`, ptr: new(V), out: V{F3: Number("-")}, err: &SyntaxError{msg: "invalid character '}' in numeric literal", Offset: 9}},
 
@@ -652,21 +634,9 @@ var unmarshalTests = []unmarshalTest{
 		out: S5{S8: S8{S9: S9{Y: 2}}},
 	},
 	{
-		in:                    `{"X": 1,"Y":2}`,
-		ptr:                   new(S5),
-		err:                   fmt.Errorf("json: unknown field \"X\""),
-		disallowUnknownFields: true,
-	},
-	{
 		in:  `{"X": 1,"Y":2}`,
 		ptr: new(S10),
 		out: S10{S13: S13{S8: S8{S9: S9{Y: 2}}}},
-	},
-	{
-		in:                    `{"X": 1,"Y":2}`,
-		ptr:                   new(S10),
-		err:                   fmt.Errorf("json: unknown field \"X\""),
-		disallowUnknownFields: true,
 	},
 	{
 		in:  `{"I": 0, "I": null, "J": null}`,
@@ -853,62 +823,6 @@ var unmarshalTests = []unmarshalTest{
 	{in: `{"B": "null"}`, ptr: new(B), out: B{false}},
 	{in: `{"B": "nul"}`, ptr: new(B), err: errors.New(`json: invalid use of ,string struct tag, trying to unmarshal "nul" into bool`)},
 	{in: `{"B": [2, 3]}`, ptr: new(B), err: errors.New(`json: invalid use of ,string struct tag, trying to unmarshal unquoted value into bool`)},
-
-	// additional tests for disallowUnknownFields
-	{
-		in: `{
-			"Level0": 1,
-			"Level1b": 2,
-			"Level1c": 3,
-			"x": 4,
-			"Level1a": 5,
-			"LEVEL1B": 6,
-			"e": {
-				"Level1a": 8,
-				"Level1b": 9,
-				"Level1c": 10,
-				"Level1d": 11,
-				"x": 12
-			},
-			"Loop1": 13,
-			"Loop2": 14,
-			"X": 15,
-			"Y": 16,
-			"Z": 17,
-			"Q": 18,
-			"extra": true
-		}`,
-		ptr:                   new(Top),
-		err:                   fmt.Errorf("json: unknown field \"extra\""),
-		disallowUnknownFields: true,
-	},
-	{
-		in: `{
-			"Level0": 1,
-			"Level1b": 2,
-			"Level1c": 3,
-			"x": 4,
-			"Level1a": 5,
-			"LEVEL1B": 6,
-			"e": {
-				"Level1a": 8,
-				"Level1b": 9,
-				"Level1c": 10,
-				"Level1d": 11,
-				"x": 12,
-				"extra": null
-			},
-			"Loop1": 13,
-			"Loop2": 14,
-			"X": 15,
-			"Y": 16,
-			"Z": 17,
-			"Q": 18
-		}`,
-		ptr:                   new(Top),
-		err:                   fmt.Errorf("json: unknown field \"extra\""),
-		disallowUnknownFields: true,
-	},
 	// issue 26444
 	// UnmarshalTypeError without field & struct values
 	{
@@ -1121,14 +1035,7 @@ func TestUnmarshal(t *testing.T) {
 			continue
 		}
 
-		dec := NewDecoder(bytes.NewReader(in))
-		if tt.useNumber {
-			dec.UseNumber()
-		}
-		if tt.disallowUnknownFields {
-			dec.DisallowUnknownFields()
-		}
-		if err := dec.Decode(v.Interface()); !equalError(err, tt.err) {
+		if err := Unmarshal(bytes.NewReader(in), v.Interface()); !equalError(err, tt.err) {
 			t.Errorf("#%d: %v, want %v", i, err, tt.err)
 			continue
 		} else if err != nil {
@@ -1152,11 +1059,7 @@ func TestUnmarshal(t *testing.T) {
 				t.Errorf("#%d: remarshal mismatch:\nhave: %s\nwant: %s", i, enc, in)
 			}
 			vv := reflect.New(reflect.TypeOf(tt.ptr).Elem())
-			dec = NewDecoder(bytes.NewReader(enc))
-			if tt.useNumber {
-				dec.UseNumber()
-			}
-			if err := dec.Decode(vv.Interface()); err != nil {
+			if err := Unmarshal(bytes.NewReader(enc), vv.Interface()); err != nil {
 				t.Errorf("#%d: error re-unmarshaling %#q: %v", i, enc, err)
 				continue
 			}
@@ -1284,7 +1187,7 @@ func TestErrorMessageFromMisusedString(t *testing.T) {
 	for n, tt := range wrongStringTests {
 		r := strings.NewReader(tt.in)
 		var s WrongString
-		err := NewDecoder(r).Decode(&s)
+		err := Unmarshal(r, &s)
 		got := fmt.Sprintf("%v", err)
 		assert.Equal(t, tt.err, got, "test", n)
 	}
@@ -1647,7 +1550,7 @@ func TestEmptyString(t *testing.T) {
 	}
 	data := `{"Number1":"1", "Number2":""}`
 	var t2 T2
-	assert.Error(t, NewDecoder(strings.NewReader(data)).Decode(&t2))
+	assert.Error(t, Unmarshal(strings.NewReader(data), &t2))
 	assert.Equal(t, 1, t2.Number1)
 }
 
@@ -2223,39 +2126,6 @@ func TestUnmarshalEmbeddedUnexported(t *testing.T) {
 			t.Errorf("#%d: %v, want %v", i, err, tt.err)
 		}
 		assert.Equal(t, tt.out, tt.ptr)
-	}
-}
-
-func TestUnmarshalErrorAfterMultipleJSON(t *testing.T) {
-	tests := []struct {
-		in  string
-		err error
-	}{{
-		in:  `1 false null :`,
-		err: &SyntaxError{"invalid character ':' looking for beginning of value", 14},
-	}, {
-		in:  `1 [] [,]`,
-		err: &SyntaxError{"invalid character ',' looking for beginning of value", 7},
-	}, {
-		in:  `1 [] [true:]`,
-		err: &SyntaxError{"invalid character ':' after array element", 11},
-	}, {
-		in:  `1  {}    {"x"=}`,
-		err: &SyntaxError{"invalid character '=' after object key", 14},
-	}, {
-		in:  `falsetruenul#`,
-		err: &SyntaxError{"invalid character '#' in literal null (expecting 'l')", 13},
-	}}
-	for _, tt := range tests {
-		dec := NewDecoder(strings.NewReader(tt.in))
-		var err error
-		for {
-			var v interface{}
-			if err = dec.Decode(&v); err != nil {
-				break
-			}
-		}
-		assert.EqualValues(t, tt.err, err)
 	}
 }
 
