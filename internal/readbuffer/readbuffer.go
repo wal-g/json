@@ -15,6 +15,7 @@ type ReadBuffer struct {
 	index int
 	len   int
 	src   io.Reader
+	finished bool
 }
 
 func New(stream io.Reader) ReadBuffer {
@@ -36,16 +37,19 @@ func (r *ReadBuffer) Get(n int) (res []byte, err error) {
 		}
 		time.Sleep(readTimeout)
 	}
-	if err != io.EOF {
-		return nil, err
-	}
-	if err == io.EOF && r.len > 0 {
-		err = nil
-	}
 	if n == 0 {
 		return
 	}
+	if err == io.EOF {
+		r.finished = true
+		err = nil
+	} else {
+		return nil, err
+	}
 	n, res = r.appendFromBuffer(n, res)
+	if n > 0 && r.finished {
+		return res, io.EOF
+	}
 	return
 }
 
