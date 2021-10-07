@@ -182,27 +182,6 @@ func BenchmarkUnicodeDecoder(b *testing.B) {
 	}
 }
 
-func BenchmarkDecoderStream(b *testing.B) {
-	b.ReportAllocs()
-	b.StopTimer()
-	var buf bytes.Buffer
-	buf.WriteString(`"` + strings.Repeat("x", 1000000) + `"` + "\n\n\n")
-	var x interface{}
-	if err := Unmarshal(&buf, &x); err != nil {
-		b.Fatal("Decode:", err)
-	}
-	ones := strings.Repeat(" 1\n", 300000) + "\n\n\n"
-	b.StartTimer()
-	for i := 0; i < b.N; i++ {
-		if i%300000 == 0 {
-			buf.WriteString(ones)
-		}
-		x = nil
-		require.NoError(b, Unmarshal(&buf, &x))
-		assert.Equal(b, 1.0, x)
-	}
-}
-
 func BenchmarkCodeUnmarshal(b *testing.B) {
 	b.ReportAllocs()
 	if codeJSON == nil {
