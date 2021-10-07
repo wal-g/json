@@ -290,10 +290,6 @@ func (e *writerEncodeState) reflectValue(v reflect.Value, opts encOpts) error {
 	return valueEncoder(v)(e, v, opts)
 }
 
-func (e *writerEncodeState) error(err error) {
-	panic(jsonError{err})
-}
-
 const startDetectingCyclesAfter = 1000
 
 // jsonError is an error wrapper type for internal use only.

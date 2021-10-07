@@ -258,8 +258,8 @@ func ExampleIndent() {
 	}
 
 	var out bytes.Buffer
-	json.Indent(&out, b, "=", "\t")
-	out.WriteTo(os.Stdout)
+	_ = json.Indent(&out, b, "=", "\t")
+	_, _ = out.WriteTo(os.Stdout)
 	// Output:
 	// [
 	// =	{
@@ -304,7 +304,7 @@ func ExampleValid() {
 func ExampleHTMLEscape() {
 	var out bytes.Buffer
 	json.HTMLEscape(&out, []byte(`{"Name":"<b>HTML content</b>"}`))
-	out.WriteTo(os.Stdout)
+	_, _ = out.WriteTo(os.Stdout)
 	// Output:
 	//{"Name":"\u003cb\u003eHTML content\u003c/b\u003e"}
 }

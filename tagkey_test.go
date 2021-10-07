@@ -45,7 +45,7 @@ type percentSlashTag struct {
 }
 
 type punctuationTag struct {
-	V string `json:"!#$%&()*+-./:;<=>?@[]^_{|}~ "` // https://golang.org/issue/3546
+	V string `json:"!#$%&()*+-./:;<=>?@[]^_{|}~ "` //nolint:staticcheck // https://golang.org/issue/3546
 }
 
 type dashTag struct {
@@ -61,11 +61,11 @@ type misnamedTag struct {
 }
 
 type badFormatTag struct {
-	Y string `:"BadFormat"`
+	Y string `:"BadFormat"` //nolint:govet
 }
 
 type badCodeTag struct {
-	Z string `json:" !\"#&'()*+,."`
+	Z string `json:" !\"#&'()*+,."` //nolint: staticcheck
 }
 
 type spaceTag struct {

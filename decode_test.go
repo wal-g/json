@@ -84,7 +84,7 @@ var ifaceNumAsNumber = map[string]interface{}{
 }
 
 type tx struct {
-	x int
+	x int //nolint:unused,structcheck
 }
 
 type u8 uint8
@@ -1297,6 +1297,7 @@ func noSpace(c rune) rune {
 	return c
 }
 
+//nolint:structcheck
 type All struct {
 	Bool    bool
 	Int     int
@@ -1314,7 +1315,7 @@ type All struct {
 	Float64 float64
 
 	Foo  string `json:"bar"`
-	Foo2 string `json:"bar2,dummyopt"`
+	Foo2 string `json:"bar2,dummyopt"` //nolint:staticcheck
 
 	IntStr     int64   `json:",string"`
 	UintptrStr uintptr `json:",string"`
@@ -1363,7 +1364,7 @@ type All struct {
 	Interface  interface{}
 	PInterface *interface{}
 
-	unexported int
+	unexported int //nolint
 }
 
 type Small struct {
@@ -1936,6 +1937,7 @@ func TestUnmarshalSyntax(t *testing.T) {
 	}
 }
 
+//nolint:unused,structcheck,govet
 // Test handling of unexported fields that should be ignored.
 // Issue 4660
 type unexportedFields struct {
@@ -2078,6 +2080,7 @@ func TestInvalidUnmarshalText(t *testing.T) {
 
 // Test that string option is ignored for invalid types.
 // Issue 9812.
+//nolint:staticcheck
 func TestInvalidStringOption(t *testing.T) {
 	num := 0
 	item := struct {
