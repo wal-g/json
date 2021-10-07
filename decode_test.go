@@ -2422,7 +2422,7 @@ func TestUnmarshalMaxDepth(t *testing.T) {
 var _ io.Reader = &eofSignalReader{}
 
 type eofSignalReader struct {
-	data []byte
+	data  []byte
 	index int
 }
 
@@ -2434,8 +2434,8 @@ func newEOFSignalReader(data []byte) *eofSignalReader {
 
 func (e *eofSignalReader) Read(p []byte) (int, error) {
 	n := len(p)
-	if len(e.data) - e.index >= n {
-		copy(p, e.data[e.index:e.index + n])
+	if len(e.data)-e.index >= n {
+		copy(p, e.data[e.index:e.index+n])
 		e.index += n
 		return n, nil
 	}
@@ -2446,8 +2446,8 @@ func (e *eofSignalReader) Read(p []byte) (int, error) {
 }
 
 func TestUnmarshalEOFSignalReader(t *testing.T) {
-	want := strings.Repeat("a", 1 << 10 + 1 << 5)
+	want := strings.Repeat("a", 1<<10+1<<5)
 	got := ""
-	require.NoError(t, Unmarshal(newEOFSignalReader([]byte(`"` + want + `"`)), &got))
+	require.NoError(t, Unmarshal(newEOFSignalReader([]byte(`"`+want+`"`)), &got))
 	assert.Equal(t, want, got)
 }
