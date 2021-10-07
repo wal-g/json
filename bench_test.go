@@ -94,9 +94,8 @@ func BenchmarkCodeEncoder(b *testing.B) {
 		b.StartTimer()
 	}
 	b.RunParallel(func(pb *testing.PB) {
-		enc := NewEncoder(io.Discard)
 		for pb.Next() {
-			assert.NoError(b, enc.Encode(&codeStruct))
+			assert.NoError(b, Marshal(&codeStruct, mocks.NewDiscardCloser()))
 		}
 	})
 	b.SetBytes(int64(len(codeJSON)))
@@ -157,7 +156,6 @@ func BenchmarkCodeDecoder(b *testing.B) {
 	}
 	b.RunParallel(func(pb *testing.PB) {
 		var buf bytes.Buffer
-		dec := NewDecoder(&buf)
 		var r codeResponse
 		for pb.Next() {
 			buf.Write(codeJSON)
@@ -165,7 +163,7 @@ func BenchmarkCodeDecoder(b *testing.B) {
 			buf.WriteByte('\n')
 			buf.WriteByte('\n')
 			buf.WriteByte('\n')
-			assert.NoError(b, dec.Decode(&r))
+			assert.NoError(b, Unmarshal(&buf, &r))
 		}
 	})
 	b.SetBytes(int64(len(codeJSON)))
@@ -176,11 +174,10 @@ func BenchmarkUnicodeDecoder(b *testing.B) {
 	j := []byte(`"\uD83D\uDE01"`)
 	b.SetBytes(int64(len(j)))
 	r := bytes.NewReader(j)
-	dec := NewDecoder(r)
 	var out string
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		assert.NoError(b, dec.Decode(&out))
+		assert.NoError(b, Unmarshal(r, &out))
 		_, _ = r.Seek(0, 0)
 	}
 }
@@ -189,10 +186,9 @@ func BenchmarkDecoderStream(b *testing.B) {
 	b.ReportAllocs()
 	b.StopTimer()
 	var buf bytes.Buffer
-	dec := NewDecoder(&buf)
 	buf.WriteString(`"` + strings.Repeat("x", 1000000) + `"` + "\n\n\n")
 	var x interface{}
-	if err := dec.Decode(&x); err != nil {
+	if err := Unmarshal(&buf, &x); err != nil {
 		b.Fatal("Decode:", err)
 	}
 	ones := strings.Repeat(" 1\n", 300000) + "\n\n\n"
@@ -202,7 +198,7 @@ func BenchmarkDecoderStream(b *testing.B) {
 			buf.WriteString(ones)
 		}
 		x = nil
-		require.NoError(b, dec.Decode(&x))
+		require.NoError(b, Unmarshal(&buf, &x))
 		assert.Equal(b, 1.0, x)
 	}
 }
@@ -375,10 +371,8 @@ func BenchmarkEncodeMarshaler(b *testing.B) {
 	}{}
 
 	b.RunParallel(func(pb *testing.PB) {
-		enc := NewEncoder(io.Discard)
-
 		for pb.Next() {
-			assert.NoError(b, enc.Encode(&m))
+			assert.NoError(b, Marshal(&m, mocks.NewDiscardCloser()))
 		}
 	})
 }
