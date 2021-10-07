@@ -6,10 +6,11 @@ package json
 
 import (
 	"bytes"
-	"github.com/stretchr/testify/assert"
 	"strings"
 	"testing"
 	"unicode/utf8"
+
+	"github.com/stretchr/testify/assert"
 )
 
 var foldTests = []struct {

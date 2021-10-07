@@ -5,10 +5,11 @@
 package json
 
 import (
-	"github.com/EinKrebs/json/mocks"
-	"github.com/stretchr/testify/require"
 	"strings"
 	"testing"
+
+	"github.com/EinKrebs/json/mocks"
+	"github.com/stretchr/testify/require"
 )
 
 type basicLatin2xTag struct {

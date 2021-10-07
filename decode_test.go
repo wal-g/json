@@ -10,9 +10,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/EinKrebs/json/mocks"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"image"
 	"io"
 	"math"
@@ -24,6 +21,10 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/EinKrebs/json/mocks"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 type T struct {

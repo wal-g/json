@@ -14,9 +14,6 @@ import (
 	"bytes"
 	"compress/gzip"
 	"fmt"
-	"github.com/EinKrebs/json/mocks"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"io"
 	"os"
 	"reflect"
@@ -24,6 +21,10 @@ import (
 	"strings"
 	"sync"
 	"testing"
+
+	"github.com/EinKrebs/json/mocks"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 type codeResponse struct {

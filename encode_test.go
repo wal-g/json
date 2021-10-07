@@ -9,8 +9,6 @@ import (
 	"encoding"
 	"encoding/json"
 	"fmt"
-	"github.com/EinKrebs/json/mocks"
-	"github.com/stretchr/testify/assert"
 	"log"
 	"math"
 	"reflect"
@@ -19,6 +17,9 @@ import (
 	"strings"
 	"testing"
 	"unicode"
+
+	"github.com/EinKrebs/json/mocks"
+	"github.com/stretchr/testify/assert"
 
 	"github.com/stretchr/testify/require"
 )

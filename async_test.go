@@ -2,11 +2,12 @@ package json
 
 import (
 	"encoding/json"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"io"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 var _ io.Reader = &slowReader{}

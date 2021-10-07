@@ -6,9 +6,6 @@ package json
 
 import (
 	"bytes"
-	"github.com/EinKrebs/json/mocks"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"io"
 	"net"
 	"net/http"
@@ -16,6 +13,10 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+
+	"github.com/EinKrebs/json/mocks"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // Test values for the stream test.

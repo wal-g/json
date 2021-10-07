@@ -1,9 +1,10 @@
 package json
 
 import (
-	"github.com/EinKrebs/json/internal/readbuffer"
 	"io"
 	"strings"
+
+	"github.com/EinKrebs/json/internal/readbuffer"
 )
 
 const (
