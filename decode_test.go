@@ -1364,7 +1364,7 @@ type All struct {
 	Interface  interface{}
 	PInterface *interface{}
 
-	unexported int //nolint
+	unexported int //nolint:unused
 }
 
 type Small struct {

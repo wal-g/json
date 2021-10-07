@@ -100,7 +100,7 @@ func TestEncoderSetEscapeHTML(t *testing.T) {
 	var ct CText
 	var tagStruct struct {
 		Valid   int `json:"<>&#! "`
-		Invalid int `json:"\\"` //nolint
+		Invalid int `json:"\\"` //nolint:staticcheck
 	}
 
 	// This case is particularly interesting, as we force the encoder to
