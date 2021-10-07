@@ -1,10 +1,17 @@
-.PHONY: fmt lint test
+TOOLS_MOD_DIR = ./internal/tools
 
-fmt:
+.PHONY: fmt lint test install-tools
+
+fmt: install-tools
 	go fmt ./...
+	goimports -w  -local github.com/jaegertracing/jaeger-clickhouse ./
 
-lint:
-	docker run --rm -v $(PWD):/app -w /app golangci/golangci-lint:v1.42.1 golangci-lint run --allow-parallel-runners ./... 
+lint: install-tools
+	golangci-lint run --allow-parallel-runners ./...
 
 test:
 	go test ./...
+
+install-tools:
+	cd $(TOOLS_MOD_DIR) && go install golang.org/x/tools/cmd/goimports
+	cd $(TOOLS_MOD_DIR) && go install github.com/golangci/golangci-lint/cmd/golangci-lint

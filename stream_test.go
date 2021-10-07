@@ -6,9 +6,6 @@ package json
 
 import (
 	"bytes"
-	"github.com/EinKrebs/json/mocks"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"io"
 	"net"
 	"net/http"
@@ -16,6 +13,10 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+
+	"github.com/EinKrebs/json/mocks"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // Test values for the stream test.
@@ -99,7 +100,7 @@ func TestEncoderSetEscapeHTML(t *testing.T) {
 	var ct CText
 	var tagStruct struct {
 		Valid   int `json:"<>&#! "`
-		Invalid int `json:"\\"`
+		Invalid int `json:"\\"` //nolint:staticcheck
 	}
 
 	// This case is particularly interesting, as we force the encoder to
@@ -251,7 +252,9 @@ var blockingTests = []string{
 func TestBlocking(t *testing.T) {
 	for _, enc := range blockingTests {
 		r, w := net.Pipe()
-		go w.Write([]byte(enc))
+		go func() {
+			_, _ = w.Write([]byte(enc))
+		}()
 		var val interface{}
 
 		// If Decode reads beyond what w.Write writes above,
@@ -395,7 +398,7 @@ func TestHTTPDecoding(t *testing.T) {
 	const raw = `{ "foo": "bar" }`
 
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte(raw))
+		_, _ = w.Write([]byte(raw))
 	}))
 	defer ts.Close()
 	res, err := http.Get(ts.URL)

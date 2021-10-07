@@ -9,8 +9,6 @@ import (
 	"encoding"
 	"encoding/json"
 	"fmt"
-	"github.com/EinKrebs/json/mocks"
-	"github.com/stretchr/testify/assert"
 	"log"
 	"math"
 	"reflect"
@@ -19,6 +17,9 @@ import (
 	"strings"
 	"testing"
 	"unicode"
+
+	"github.com/EinKrebs/json/mocks"
+	"github.com/stretchr/testify/assert"
 
 	"github.com/stretchr/testify/require"
 )
@@ -31,7 +32,7 @@ type Optionals struct {
 	Ir int `json:"omitempty"` // actually named omitempty, not an option
 	Io int `json:"io,omitempty"`
 
-	Slr []string `json:"slr,random"`
+	Slr []string `json:"slr,random"` //nolint:staticcheck
 	Slo []string `json:"slo,omitempty"`
 
 	Mr map[string]interface{} `json:"mr"`

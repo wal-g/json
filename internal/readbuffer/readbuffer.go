@@ -11,10 +11,10 @@ const (
 )
 
 type ReadBuffer struct {
-	buf   []byte
-	index int
-	len   int
-	src   io.Reader
+	buf      []byte
+	index    int
+	len      int
+	src      io.Reader
 	finished bool
 }
 
