@@ -2418,3 +2418,36 @@ func TestUnmarshalMaxDepth(t *testing.T) {
 		}
 	}
 }
+
+var _ io.Reader = &eofSignalReader{}
+
+type eofSignalReader struct {
+	data  []byte
+	index int
+}
+
+func newEOFSignalReader(data []byte) *eofSignalReader {
+	return &eofSignalReader{
+		data: data,
+	}
+}
+
+func (e *eofSignalReader) Read(p []byte) (int, error) {
+	n := len(p)
+	if len(e.data)-e.index >= n {
+		copy(p, e.data[e.index:e.index+n])
+		e.index += n
+		return n, nil
+	}
+	length := len(e.data) - e.index
+	copy(p, e.data[e.index:])
+	e.index = len(e.data)
+	return length, io.EOF
+}
+
+func TestUnmarshalEOFSignalReader(t *testing.T) {
+	want := strings.Repeat("a", 1<<10+1<<5)
+	got := ""
+	require.NoError(t, Unmarshal(newEOFSignalReader([]byte(`"`+want+`"`)), &got))
+	assert.Equal(t, want, got)
+}

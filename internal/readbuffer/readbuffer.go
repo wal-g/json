@@ -15,6 +15,7 @@ type ReadBuffer struct {
 	index int
 	len   int
 	src   io.Reader
+	finished bool
 }
 
 func New(stream io.Reader) ReadBuffer {
@@ -24,30 +25,44 @@ func New(stream io.Reader) ReadBuffer {
 	}
 }
 
-func (r *ReadBuffer) Get(n int) ([]byte, error) {
-	if r.len-r.index >= n {
-		res := r.buf[r.index : r.index+n]
-		r.index += n
-		return res, nil
+func (r *ReadBuffer) Get(n int) (res []byte, err error) {
+	n, res = r.appendFromBuffer(n, res)
+	if n == 0 {
+		return
 	}
-	res := make([]byte, r.len-r.index)
-	copy(res, r.buf[r.index:r.len])
-	r.index = r.len
-	n -= len(res)
-	var err error
 	for err = r.load(); err == nil; err = r.load() {
-		if r.len-r.index >= n {
-			res = append(res, r.buf[r.index:r.index+n]...)
-			r.index += n
-			return res, nil
+		n, res = r.appendFromBuffer(n, res)
+		if n == 0 {
+			return
 		}
-
-		res = append(res, r.buf[r.index:r.len]...)
-		n -= r.len - r.index
-		r.index = r.len
 		time.Sleep(readTimeout)
 	}
-	return res, err
+	if n == 0 {
+		return
+	}
+	if err == io.EOF {
+		r.finished = true
+		err = nil
+	} else {
+		return nil, err
+	}
+	n, res = r.appendFromBuffer(n, res)
+	if n > 0 && r.finished {
+		return res, io.EOF
+	}
+	return
+}
+
+func (r *ReadBuffer) appendFromBuffer(n int, dst []byte) (int, []byte) {
+	length := r.len - r.index
+	if length >= n {
+		res := append(dst, r.buf[r.index:r.index+n]...)
+		r.index += n
+		return 0, res
+	}
+	res := append(dst, r.buf[r.index:r.len]...)
+	r.index = r.len
+	return n - length, res
 }
 
 func (r *ReadBuffer) load() error {
