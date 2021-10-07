@@ -1,4 +1,4 @@
-name: Test
+name: Build
 
 on:
   push:
@@ -35,7 +35,7 @@ jobs:
           go-version: ^1.16
 
       - name: Format
-        run: make mt
+        run: make fmt
 
   lint:
     runs-on: ubuntu-latest
