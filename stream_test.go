@@ -254,7 +254,7 @@ func TestBlocking(t *testing.T) {
 		r, w := net.Pipe()
 		go func() {
 			_, _ = w.Write([]byte(enc))
-		} ()
+		}()
 		var val interface{}
 
 		// If Decode reads beyond what w.Write writes above,
