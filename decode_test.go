@@ -913,18 +913,6 @@ func TestMarshal(t *testing.T) {
 	assert.Equal(t, buf.String(), pallValueCompact)
 }
 
-func TestMarshalAsync(t *testing.T) {
-	r, w := io.Pipe()
-	var marshalErr error
-	go func() {
-		marshalErr = Marshal(allValue, w)
-	}()
-	data, err := io.ReadAll(r)
-	require.NoError(t, err)
-	require.NoError(t, marshalErr)
-	require.Equal(t, string(data), allValueCompact)
-}
-
 var badUTF8 = []struct {
 	in, out string
 }{
@@ -1080,19 +1068,6 @@ func TestUnmarshalMarshal(t *testing.T) {
 	buf := mocks.NewBuildCloser()
 	require.NoError(t, Marshal(v, buf))
 	assert.Equal(t, jsonBig, []byte(buf.String()))
-}
-
-func TestMarshalUnmarshalAsync(t *testing.T) {
-	want := genValue(100000)
-	r, w := io.Pipe()
-	var err error
-	go func() {
-		err = Marshal(want, w)
-	}()
-	var got interface{}
-	require.NoError(t, Unmarshal(r, &got))
-	require.NoError(t, err)
-	assert.Equal(t, want, got)
 }
 
 var numberTests = []struct {
