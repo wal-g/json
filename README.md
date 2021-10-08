@@ -1,7 +1,7 @@
 # Streaming JSON
 
-This is a library providing encoding to JSON directly to given io.Writer, without allocating such memory amounts as 
-the encoding/json from standart library.
+This is a library providing JSON serialization by streaming to given io.WriteCloser, without allocating memory for entire JSON 
+and deserialization object from io.Reader without fetching all the data before.
 
 ### Credits
 
