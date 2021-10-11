@@ -1,4 +1,4 @@
-module github.com/EinKrebs/json
+module github.com/wal-g/json
 
 go 1.16
 

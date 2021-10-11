@@ -8,8 +8,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/EinKrebs/json/mocks"
 	"github.com/stretchr/testify/require"
+	"github.com/wal-g/json/mocks"
 )
 
 type basicLatin2xTag struct {

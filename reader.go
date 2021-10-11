@@ -4,7 +4,7 @@ import (
 	"io"
 	"strings"
 
-	"github.com/EinKrebs/json/internal/readbuffer"
+	"github.com/wal-g/json/internal/readbuffer"
 )
 
 const (

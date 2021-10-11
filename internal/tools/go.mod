@@ -1,4 +1,4 @@
-module github.com/jaegertracing/jaeger-clickhouse/internal/tools
+module github.com/wal-g/json/internal/tools
 
 go 1.17
 
