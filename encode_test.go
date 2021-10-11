@@ -18,38 +18,11 @@ import (
 	"testing"
 	"unicode"
 
-	"github.com/EinKrebs/json/mocks"
 	"github.com/stretchr/testify/assert"
+	"github.com/wal-g/json/mocks"
 
 	"github.com/stretchr/testify/require"
 )
-
-type Optionals struct {
-	Sr string `json:"sr"`
-	So string `json:"so,omitempty"`
-	Sw string `json:"-"`
-
-	Ir int `json:"omitempty"` // actually named omitempty, not an option
-	Io int `json:"io,omitempty"`
-
-	Slr []string `json:"slr,random"` //nolint:staticcheck
-	Slo []string `json:"slo,omitempty"`
-
-	Mr map[string]interface{} `json:"mr"`
-	Mo map[string]interface{} `json:",omitempty"`
-
-	Fr float64 `json:"fr"`
-	Fo float64 `json:"fo,omitempty"`
-
-	Br bool `json:"br"`
-	Bo bool `json:"bo,omitempty"`
-
-	Ur uint `json:"ur"`
-	Uo uint `json:"uo,omitempty"`
-
-	Str struct{} `json:"str"`
-	Sto struct{} `json:"sto,omitempty"`
-}
 
 // byte slices are special even if they're renamed types.
 type renamedByte byte

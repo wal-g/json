@@ -2,9 +2,8 @@ TOOLS_MOD_DIR = ./internal/tools
 
 .PHONY: fmt lint test install-tools
 
-fmt: install-tools
+fmt:
 	go fmt ./...
-	goimports -w  -local github.com/jaegertracing/jaeger-clickhouse ./
 
 lint: install-tools
 	golangci-lint run --allow-parallel-runners ./...
