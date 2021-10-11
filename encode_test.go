@@ -19,9 +19,9 @@ import (
 	"unicode"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/wal-g/json/mocks"
-
 	"github.com/stretchr/testify/require"
+
+	"github.com/wal-g/json/mocks"
 )
 
 // byte slices are special even if they're renamed types.
