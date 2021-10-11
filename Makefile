@@ -4,6 +4,7 @@ TOOLS_MOD_DIR = ./internal/tools
 
 fmt:
 	go fmt ./...
+	goimports -w  -local github.com/wal-g/json ./
 
 lint: install-tools
 	golangci-lint run --allow-parallel-runners ./...
